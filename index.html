@@ -151,7 +151,10 @@
     h1 { font-size: 1.6rem; }
     .row2, .row3 { grid-template-columns: 1fr 1fr; }
     @media (max-width: 380px) { .row2, .row3, .toggles { grid-template-columns: 1fr; } }
+    #routeMap { height: 240px; width: 100%; border-radius: 0.85rem; margin: 0 0 0.75rem; overflow: hidden; background: var(--raised); }
 </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </head>
 <body>
 <main>
@@ -189,7 +192,7 @@
         </div>
         <div class="row3">
           <label><span>Rate $ (whole load)</span><input id="linehaul" type="number" inputmode="decimal" min="0" step="0.01" value="1000" /></label>
-          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="1.00" /></label>
+          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="0.40" /></label>
           <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="50" /></label>
         </div>
         <div id="cutWrap">
@@ -934,7 +937,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   var STNAME = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'};
 
   var load = {
-    origin: '', destination: '', linehaul: 1000, fsc: 1.00, accessorials: 50,
+    origin: '', destination: '', linehaul: 1000, fsc: 0.40, accessorials: 50,
     cutPct: DISPATCH_DEFAULT, bennett: false, loaded: 0, deadhead: 0,
     width: '', height: '', length: '', weight: '', equipment: '',
     costs: 0, mpg: 6.5, dieselGal: 0, runCpm: 0, target: 0.4, startCity: '',
@@ -1281,6 +1284,39 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
   }
 
+  function hwyToken(t) {
+    return /^(?:I|IH|US|SR|SH|HWY)[\s-]?\d/i.test(t);
+  }
+  function hwyName(n) {
+    return /\bInterstate\b/i.test(n) || /\bUS Route\b/i.test(n) || /\b(?:I|US|SR|SH|Hwy)[\s-]?\d+\b/i.test(n) || /\b(?:highway|hwy)\s*\d+/i.test(n);
+  }
+  function highwayLabel(step) {
+    var refs = String((step && step.ref) || '').split(';'), kept = [], i, t;
+    for (i = 0; i < refs.length; i++) {
+      t = refs[i].replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+      if (t && hwyToken(t) && kept.indexOf(t) < 0) kept.push(t);
+    }
+    if (kept.length) return kept.join('; ');
+    t = String((step && step.name) || '').replace(/\s+/g, ' ').trim();
+    if (t && hwyName(t)) return t.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+    return '';
+  }
+  function osrmHighways(legs) {
+    var segs = [];
+    (legs || []).forEach(function (leg) {
+      (leg.steps || []).forEach(function (step) {
+        var name = highwayLabel(step);
+        if (!name) return;
+        var last = segs[segs.length - 1];
+        if (last && last.name === name) last.m += step.distance || 0;
+        else segs.push({ name: name, m: step.distance || 0 });
+      });
+    });
+    return segs.filter(function (x) { return x.m >= 1609.344; }).map(function (x) {
+      return x.name + ' ' + Math.round(x.m / 1609.344) + ' mi';
+    }).join(', ');
+  }
+
   function osrmRoute() {
     var from = place(load.origin), to = place(load.destination), start = String(load.startCity || '').trim();
     ui.busy = true; ui.err = ''; render();
@@ -1289,7 +1325,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     return Promise.all(asks).then(function (pts) {
       var first = pts[2] || pts[0], dest = pts[1], via = pts[2] ? pts[0] : null;
       var coords = first.lng + ',' + first.lat + (via ? ';' + via.lng + ',' + via.lat : '') + ';' + dest.lng + ',' + dest.lat;
-      var url = 'https://router.project-osrm.org/route/v1/driving/' + coords + '?overview=full&geometries=geojson';
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + coords + '?overview=full&geometries=geojson&steps=true';
       return fetch(url).then(function (r) { if (!r.ok) throw new Error('OSRM answered ' + r.status); return r.json(); }).then(function (j) {
         var route = j.routes && j.routes[0];
         if (!route) throw new Error('No highway route found.');
@@ -1302,13 +1338,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         var path = (route.geometry && route.geometry.coordinates || []).map(function (c) { return [c[1], c[0]]; });
         load.here = {
           kind: 'highway', miles: Math.round(loadM / 1609.344), minutes: Math.round(loadS / 60),
-          tolls: 0, tollPoints: 0, roads: '', from: pts[0].label, to: pts[1].label,
+          tolls: 0, tollPoints: 0, roads: osrmHighways(via && legs.length >= 2 ? legs.slice(1) : legs), from: pts[0].label, to: pts[1].label,
           notices: ['These are public highway miles from OSRM, not a truck route. Check clearances, truck bans, and a truck GPS yourself.'],
           profile: 'car / highway (OSRM + Nominatim)', at: new Date().toISOString(),
           states: [scoreState(load.origin), scoreState(load.destination)].filter(function (x, i, a) { return x && a.indexOf(x) === i; })
         };
         if (via) {
           load.here.start = pts[2].label; load.here.deadMiles = Math.round(deadM / 1609.344); load.here.deadMinutes = Math.round(deadS / 60);
+          load.here.deadRoads = osrmHighways(legs.slice(0, 1));
           if (!num(load.deadhead)) { load.deadhead = load.here.deadMiles; var dh = $('deadhead'); if (dh) dh.value = String(load.deadhead); }
         }
         if (!num(load.loaded)) { load.loaded = load.here.miles; var lm = $('loaded'); if (lm) lm.value = String(load.loaded); }
@@ -1963,10 +2000,44 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
     set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on the rate after fuel and extras'));
   }
+  var routeMap = null, routeMapSig = '';
+  function routeLineSig(pts) {
+    if (!pts || pts.length < 2) return '';
+    var a = pts[0], b = pts[pts.length - 1];
+    return String(pts.length) + '|' + a[0] + ',' + a[1] + '|' + b[0] + ',' + b[1];
+  }
+  function mountRouteMap(pts) {
+    var box = document.getElementById('routeMap');
+    if (!box || !pts || pts.length < 2) return;
+    var sig = routeLineSig(pts);
+    if (routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box) return;
+    if (routeMap) { try { routeMap.remove(); } catch (e0) {} routeMap = null; routeMapSig = ''; }
+    if (typeof L === 'undefined' || !L || typeof L.map !== 'function') return;
+    try {
+      var map = L.map(box);
+      routeMap = map;
+      routeMapSig = sig;
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+      var line = L.polyline(pts, { color: '#c45c26', weight: 5 }).addTo(map);
+      map.fitBounds(line.getBounds(), { padding: [16, 16] });
+      setTimeout(function () { try { if (routeMap === map) map.invalidateSize(); } catch (e2) {} }, 60);
+    } catch (e) {
+      if (routeMap) { try { routeMap.remove(); } catch (e3) {} }
+      routeMap = null; routeMapSig = '';
+    }
+  }
   function renderRoute() {
     var el = $('routeOut'); if (!el) return;
     var h = load.here, html = '';
     var o = place(load.origin), d = place(load.destination);
+    var pts = lineOf(), sig = routeLineSig(pts), showMap = pts.length >= 2;
+    var box = document.getElementById('routeMap');
+    var keepMap = !!(showMap && box && box.parentNode === el && routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box);
+    if (showMap && !keepMap) html += '<div id="routeMap"></div>';
     if (o && d) {
       html += '<p class="route"><a class="maplink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&amp;origin=' + encodeURIComponent(o) + '&amp;destination=' + encodeURIComponent(d) + '&amp;travelmode=driving">Open in Google Maps</a></p>';
       html += '<p class="note">Car directions, not a truck route.</p>';
@@ -1976,7 +2047,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       html += '<ul class="list plain">';
       html += '<li><strong>' + (truck ? 'Truck route: ' : 'Highway miles (not a truck route): ') + intn(h.miles) + ' mi</strong>, ' + hrs(h.minutes) + ', ' + esc(h.from) + ' \u2192 ' + esc(h.to) + '</li>';
       if (h.deadMiles != null) html += '<li>Empty: ' + intn(h.deadMiles) + ' mi, ' + hrs(h.deadMinutes) + (h.start ? ', from ' + esc(h.start) : '') + '</li>';
-      if (h.roads) html += '<li>Roads: ' + esc(h.roads) + '</li>';
+      if (h.roads) html += '<li>Highways: ' + esc(h.roads) + '</li>';
+      else html += '<li>No highway names on this route.</li>';
+      if (h.deadRoads) html += '<li>Empty highways: ' + esc(h.deadRoads) + '</li>';
       if (truck) html += '<li>Tolls: ' + (h.tollPoints ? money(h.tolls) + ' at ' + h.tollPoints + ' point(s), lowest fare each' : 'None reported') + '</li>';
       if (h.profile) html += '<li>Profile: ' + esc(h.profile) + '</li>';
       (h.notices || []).forEach(function (n) { html += '<li class="neg">' + esc(n) + '</li>'; });
@@ -1987,7 +2060,15 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     }
     if (ui.err) html += '<p class="note neg">' + esc(ui.err) + '</p>';
     if (ui.busy) html += '<p class="note">Getting route\u2026</p>';
-    el.innerHTML = html;
+    if (!keepMap && routeMap) { try { routeMap.remove(); } catch (e1) {} routeMap = null; routeMapSig = ''; }
+    if (keepMap) {
+      el.removeChild(box);
+      el.innerHTML = html;
+      el.insertBefore(box, el.firstChild);
+    } else {
+      el.innerHTML = html;
+      if (showMap) mountRouteMap(pts);
+    }
     var btn = $('btnRoute'); if (btn) { btn.disabled = !!ui.busy; btn.textContent = ui.busy ? 'Getting route\u2026' : (h ? 'Get route again' : 'Get route'); }
   }
   function renderFuel() {
