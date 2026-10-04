@@ -584,7 +584,7 @@ function ocrParseTsDetail(lines, words) {
   }
   if (!L.origin) L.unreadable.push('Origin could not be read'); if (!L.destination) L.unreadable.push('Destination could not be read');
   ocrClearFilledWarnings(L);
-  var pu = g(/Pick-?up\s+(.+)/), pu2 = g(/Date\/Time\s+(.+)/); L.pickup = (pu + ' ' + pu2).trim();  var pu = g(/Pick-?up\s+(.+)/), pu2 = g(/Date\/Time\s+(.+)/); L.pickup = (pu + ' ' + pu2).trim();
+  var pu = g(/Pick-?up\s+(.+)/), pu2 = g(/Date\/Time\s+(.+)/); L.pickup = (pu + ' ' + pu2).trim();
   var eq = g(/Equipment\s+([A-Z]{1,5})\b/); L.equipment = OCR_EQUIP[eq] || (eq ? eq + ' (board code)' : '');
   L.weight = ocrNum(g(/Weight\s+([\d,]+)/)); L.pieces = g(/Quantity\s+(\d+)/);
   ['Length', 'Width', 'Height'].forEach(function (k) { var v = g(new RegExp(k + '\\s+([\\d.]+)\\s*ft')); L[k.toLowerCase()] = v ? v + ' ft' : ''; if (!v) L.unreadable.push(k + ' is not on the posting'); });
@@ -688,7 +688,7 @@ function ocrParseTrinity(text) {
   L.origin = stopPlace('Pickup');
   L.destination = stopPlace('Delivery');
   var lh = raw.match(/\bLINEHAUL\b(?:(?!FUEL\s*SURCHARGE)[\s\S]){0,80}?\$\s*([\d,]+(?:\.\d+)?)/i);
-  if (!lh) lh = raw.match(/\bLINEHAUL\b[^\n]*?([\d,]+\.\d{2})/i);
+  if (!lh) lh = raw.match(/\bLINEHAUL\b(?:(?!FUEL\s*SURCHARGE)[^\n]){0,80}?([\d,]+\.\d{2})/i);
   if (lh) L.linehaul = ocrNum(lh[1]);
   var fscMi = raw.match(/FUEL\s*SURCHARGE[\s\S]{0,80}?\$?\s*([\d.]+)\s*(?:\/\s*mi(?:le)?|per\s*(?:loaded\s*)?mi(?:le)?)/i);
   if (fscMi) {
@@ -773,7 +773,7 @@ function ocrParseEvans(text) {
     if (em && parseFloat(em) > 0) L.miles = String(Math.round(parseFloat(em)));
   }
   if (!L.linehaul) {
-    var lh = raw.match(/\bLinehaul\b\s+([\d,]+(?:\.\d+)?)/i) || raw.match(/\bLinehaul\b[\s\S]{0,120}?\$\s*([\d,]+(?:\.\d+)?)/i);
+    var lh = raw.match(/\bLinehaul\b\s+([\d,]+(?:\.\d+)?)/i) || raw.match(/\bLinehaul\b(?:(?!Fuel\s*Surcharge)[\s\S]){0,120}?\$\s*([\d,]+(?:\.\d+)?)/i);
     if (lh) L.linehaul = ocrNum(lh[1]);
   }
   if (!L.miles) {
