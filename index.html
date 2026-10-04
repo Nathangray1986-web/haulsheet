@@ -200,7 +200,7 @@
   
       <div class="card">
         <h2>Statement</h2>
-        <div class="line"><span>Linehaul</span><strong id="oLh">$0.00</strong></div>
+        <div class="line"><span>Linehaul (freight only)</span><strong id="oLh">$0.00</strong></div>
         <div class="line"><span>Fuel surcharge</span><strong id="oFsc">$0.00</strong></div>
         <div class="line"><span>Tarp / other</span><strong id="oAcc">$0.00</strong></div>
         <div class="line"><span>Cut <span id="oCutPct"></span></span><strong id="oCut">$0.00</strong></div>
@@ -672,7 +672,7 @@ function ocrParseTrinity(text) {
   }
   L.origin = stopPlace('Pickup');
   L.destination = stopPlace('Delivery');
-  var lh = raw.match(/\bLINEHAUL\b[\s\S]{0,220}?\$\s*([\d,]+(?:\.\d+)?)/i);
+  var lh = raw.match(/\bLINEHAUL\b(?:(?!FUEL\s*SURCHARGE)[\s\S]){0,80}?\$\s*([\d,]+(?:\.\d+)?)/i);
   if (!lh) lh = raw.match(/\bLINEHAUL\b[^\n]*?([\d,]+\.\d{2})/i);
   if (lh) L.linehaul = ocrNum(lh[1]);
   var fscMi = raw.match(/FUEL\s*SURCHARGE[\s\S]{0,80}?\$?\s*([\d.]+)\s*(?:\/\s*mi(?:le)?|per\s*(?:loaded\s*)?mi(?:le)?)/i);
@@ -1851,6 +1851,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     function v(id) { var el = $(id); return el ? el.value : ''; }
     load.origin = v('origin'); load.destination = v('destination');
     load.linehaul = num(v('linehaul')); load.fsc = num(v('fsc')); load.accessorials = num(v('accessorials'));
+    /* FSC is $/loaded mile only. Do not add it into linehaul. */
     load.cutPct = num(v('cutPct')); load.loaded = num(v('loaded')); load.deadhead = num(v('deadhead'));
     load.width = v('width'); load.height = v('height'); load.length = v('length'); load.weight = v('weight');
     load.equipment = v('equipment'); load.mpg = num(v('mpg')); load.dieselGal = num(v('dieselGal')); load.runCpm = num(v('runCpm')); load.target = num(v('target'));
@@ -1897,7 +1898,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   function renderMoney(s) {
     function set(id, t) { var el = $(id); if (el) el.textContent = t; }
     set('oLh', money(s.linehaul));
-    set('oFsc', money(s.fsc));
+    set('oFsc', money(s.fsc) + (s.loadedMiles > 0 ? ' (' + Number(s.fscPerMile).toFixed(2) + '/mi \u00d7 ' + intn(s.loadedMiles) + ' mi, not added to linehaul)' : ' ($0 until loaded miles are entered)'));
     set('oAcc', money(s.accessorialTotal));
     set('oCut', money(s.dispatchFee));
     set('oNet', money(s.netRevenue));
