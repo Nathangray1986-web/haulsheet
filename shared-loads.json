@@ -8,8 +8,11 @@
     "deadhead": 196,
     "weight": 20000,
     "equipment": "Flatbed",
-    "pickup": "2026-10-05",
-    "broker": "SET LOGISTICS INC"
+    "pickup": "2026-10-05 early through 2026-10-05 11:59 PM",
+    "broker": "SET LOGISTICS INC",
+    "phone": "(205) 739-4026; text 205-704-5893; office 833-738-0109",
+    "contact": "Jason Hays",
+    "loadNumber": "652087351"
   },
   {
     "id": "trk-20261007-santaquin-anoka",
@@ -20,8 +23,11 @@
     "deadhead": 315,
     "weight": 37600,
     "equipment": "Flatbed",
-    "pickup": "2026-10-07",
-    "broker": "A-1 FREIGHT SYSTEMS"
+    "pickup": "2026-10-07 early through 2026-10-07 11:59 PM",
+    "broker": "A-1 FREIGHT SYSTEMS",
+    "phone": "(801) 769-0609",
+    "contact": "Jon Cartwright",
+    "loadNumber": "651995459"
   },
   {
     "id": "trk-20261006-tooele-fortworth",
@@ -32,7 +38,11 @@
     "deadhead": 383,
     "weight": 7372,
     "equipment": "Step deck",
-    "pickup": "2026-10-06",
-    "broker": "MERCER TRANSPORTATION"
+    "pickup": "2026-10-06 8:00 AM through 3:00 PM",
+    "delivery": "2026-10-09 11:45 AM",
+    "broker": "MERCER TRANSPORTATION",
+    "phone": "(801) 290-2741; office 800-643-1262",
+    "contact": "Michael L.",
+    "loadNumber": "651895759"
   }
 ]
