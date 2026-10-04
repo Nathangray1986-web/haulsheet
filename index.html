@@ -149,6 +149,9 @@
     }
     button.log-open .log-meta { margin-left: 0; }
     .log-row .mark { min-width: 7.2rem; }
+    .log-row.follow-up { margin-left: 0.85rem; padding-left: 0.65rem; border-left: 3px solid var(--accent); }
+    .pair-tag { display: inline-block; margin-right: 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); }
+    .log-row.follow-up .pair-tag { color: var(--muted); }
     .mark.yes { background: rgba(61,214,140,0.2); color: var(--good); }
     .mark.maybe { background: rgba(245,197,66,0.2); color: var(--accent); }
     .mark.no { background: rgba(241,245,249,0.12); color: var(--fg); }
@@ -2391,6 +2394,16 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         changed = true;
       }
     });
+    var nextPrimary = sharedPrimaryId(raw);
+    if (String(row.primaryId == null ? '' : row.primaryId) !== nextPrimary) {
+      row.primaryId = nextPrimary;
+      changed = true;
+    }
+    var dhMiss = sharedDeadheadMissing(raw);
+    if (row.deadheadMissing !== dhMiss) {
+      row.deadheadMissing = dhMiss;
+      changed = true;
+    }
     return changed;
   }
   function brokerBlockHtml() {
@@ -2467,7 +2480,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       phone: String(raw.phone || '').trim(),
       contact: String(raw.contact || '').trim(),
       loadNumber: String(raw.loadNumber || '').trim(),
-      notes: notesText
+      notes: notesText,
+      primaryId: sharedPrimaryId(raw),
+      deadheadMissing: sharedDeadheadMissing(raw)
     };
   }
 
@@ -2714,6 +2729,87 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     logSay('Added to the log. Check Taken if you haul it.');
     renderLog();
   }
+  function sharedPrimaryId(raw) {
+    if (!raw || typeof raw.primaryId !== 'string') return '';
+    return raw.primaryId.trim();
+  }
+  function sharedDeadheadMissing(raw) {
+    if (!raw) return true;
+    var v = raw.deadhead != null ? raw.deadhead : raw.deadheadMiles;
+    if (v == null) return true;
+    if (typeof v === 'string' && !String(v).trim()) return true;
+    var n = parseFloat(String(v).replace(/[$,]/g, ''));
+    return !isFinite(n);
+  }
+  function isProspectId(id) { return String(id || '').indexOf('prsp-') === 0; }
+  function classifyLoadRoles(rows) {
+    var byId = {};
+    rows.forEach(function (r) { if (r && r.id) byId[String(r.id)] = r; });
+    var role = {};
+    rows.forEach(function (r) {
+      if (!r || !r.id) return;
+      var id = String(r.id);
+      if (isProspectId(id)) { role[id] = 'prospect'; return; }
+      var pid = sharedPrimaryId(r);
+      var parent = pid ? byId[pid] : null;
+      if (!pid || pid === id || !parent || isProspectId(parent.id)) role[id] = 'primary';
+      else role[id] = 'pending';
+    });
+    var guard = 0, changed = true;
+    while (changed && guard < rows.length + 2) {
+      changed = false;
+      guard++;
+      rows.forEach(function (r) {
+        if (!r || !r.id || role[String(r.id)] !== 'pending') return;
+        var id = String(r.id);
+        var parentRole = role[sharedPrimaryId(r)];
+        if (parentRole === 'primary') { role[id] = 'secondary'; changed = true; }
+        else if (parentRole === 'secondary' || parentRole === 'prospect') { role[id] = 'primary'; changed = true; }
+      });
+    }
+    rows.forEach(function (r) {
+      if (r && r.id && role[String(r.id)] === 'pending') role[String(r.id)] = 'primary';
+    });
+    return role;
+  }
+  function sortFollowUps(list) {
+    var indexed = list.map(function (r, i) { return { r: r, i: i }; });
+    indexed.sort(function (a, b) {
+      var rateA = num(a.r.linehaul), rateB = num(b.r.linehaul);
+      if (rateA !== rateB) return rateB - rateA;
+      var milesA = num(a.r.loadedMiles), milesB = num(b.r.loadedMiles);
+      var rpmA = milesA > 0 ? rateA / milesA : null;
+      var rpmB = milesB > 0 ? rateB / milesB : null;
+      if ((rpmA == null) !== (rpmB == null)) return rpmA == null ? 1 : -1;
+      if (rpmA != null && rpmA !== rpmB) return rpmB - rpmA;
+      var missA = a.r.deadheadMissing === true, missB = b.r.deadheadMissing === true;
+      if (missA !== missB) return missA ? 1 : -1;
+      if (!missA && num(a.r.deadheadMiles) !== num(b.r.deadheadMiles)) return num(a.r.deadheadMiles) - num(b.r.deadheadMiles);
+      return a.i - b.i;
+    });
+    return indexed.map(function (x) { return x.r; });
+  }
+  function orderedLoadRows(rows) {
+    var role = classifyLoadRoles(rows);
+    var kids = {};
+    rows.forEach(function (r) {
+      if (!r || !r.id || role[String(r.id)] !== 'secondary') return;
+      var pid = sharedPrimaryId(r);
+      if (!kids[pid]) kids[pid] = [];
+      kids[pid].push(r);
+    });
+    Object.keys(kids).forEach(function (pid) { kids[pid] = sortFollowUps(kids[pid]); });
+    var out = [];
+    rows.forEach(function (r) {
+      if (!r || !r.id) return;
+      var id = String(r.id);
+      if (role[id] === 'secondary') return;
+      if (role[id] === 'prospect') { out.push({ row: r, label: '' }); return; }
+      out.push({ row: r, label: 'Primary' });
+      (kids[id] || []).forEach(function (c) { out.push({ row: c, label: 'Follow-up' }); });
+    });
+    return out;
+  }
   function renderLog() {
     var avg = $('logAvg');
     var taken = takenLoads();
@@ -2731,8 +2827,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     }
     var list = $('logList');
     if (!list) return;
-    if (!loadLog.length) list.innerHTML = '<p class="note">No loads logged yet.</p>';
-    else list.innerHTML = loadLog.map(function (r) {
+    function logRowHtml(r, pairLabel) {
       var lane = (r.origin || '\u2014') + ' \u2192 ' + (r.destination || '\u2014');
       var mark = worthMark(r);
       var cls = r.worthTaking === 'yes' ? 'yes' : r.worthTaking === 'maybe' ? 'maybe' : 'no';
@@ -2749,14 +2844,20 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       if (r.comment && String(r.comment).trim()) bits.push(String(r.comment).trim());
       if (r.source === 'tracker') bits.push('From Tracker');
       bits.push(r.source === 'bennett' ? 'Bennett' : ('Cut ' + num(r.cutPct) + '%'));
-      var laneHtml = '<div class="lane">' + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div>';
+      var tag = pairLabel ? '<span class="pair-tag">' + esc(pairLabel) + '</span>' : '';
+      var laneHtml = '<div class="lane">' + tag + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div>';
       var metaHtml = '<p class="log-meta">' + esc(bits.join(' \u00b7 ')) + '</p>';
       var mid = '<button type="button" class="log-open" data-id="' + esc(r.id) + '">' + laneHtml + metaHtml + '</button>';
-      return '<div class="log-row"><div class="top">' +
+      var rowCls = 'log-row' + (pairLabel === 'Follow-up' ? ' follow-up' : '');
+      return '<div class="' + rowCls + '"><div class="top">' +
         '<label class="log-inline"><input type="checkbox" class="log-pick" data-id="' + esc(r.id) + '"' + (logPick[r.id] ? ' checked' : '') + ' /><span class="sr">Select</span></label>' +
         mid +
         '<label class="log-inline taken"><input type="checkbox" class="log-taken" data-id="' + esc(r.id) + '"' + (r.taken ? ' checked' : '') + ' /><span>Taken</span></label>' +
         '</div></div>';
+    }
+    if (!loadLog.length) list.innerHTML = '<p class="note">No loads logged yet.</p>';
+    else list.innerHTML = orderedLoadRows(loadLog).map(function (item) {
+      return logRowHtml(item.row, item.label);
     }).join('');
     var all = $('logSelectAll');
     if (all) {
