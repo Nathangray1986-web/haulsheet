@@ -53,6 +53,12 @@
       font-variant-numeric: tabular-nums;
     }
     input:focus { border-color: var(--accent); }
+    textarea#logNote {
+      width: 100%; display: block; border-radius: 0.6rem; border: 1px solid var(--line);
+      background: var(--bg); color: var(--fg); font: inherit; font-size: 1.05rem; line-height: 1.35;
+      padding: 0.55rem 0.75rem; outline: none; resize: vertical;
+    }
+    textarea#logNote:focus { border-color: var(--accent); }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.65rem; }
     .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; }
@@ -292,7 +298,7 @@
   <div class="card" id="loadLogCard">
     <h2>Load log</h2>
     <p class="hint">Worth taking, Thin, and Pass match the big box. Taken is only the loads you actually haul. Saved in this browser only.</p>
-    <label><span>Note (optional)</span><input id="logNote" type="text" placeholder="Broker, tarp, whatever" autocomplete="off" /></label>
+    <label><span>Your note</span><textarea id="logNote" rows="2" placeholder="Why you passed on this load" autocomplete="off"></textarea></label>
     <button class="btn primary" type="button" id="btnLogAdd">Add current load to log</button>
     <button class="btn" type="button" id="btnLogExport">Export taken to Excel</button>
     <p class="note" id="logAvg">Avg keep $/mi on taken loads: — · 0 loads · 0 mi</p>
@@ -2231,6 +2237,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   var LOG_STORE = 'haulSheetLoadLog_v1';
   var loadLog = [];
   var logPick = {};
+  var openLogId = null;
   var XLSX_JS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
   var xlsxLoading = null;
 
@@ -2291,6 +2298,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       taken: false,
       takenAt: '',
       notes: notes.join(' · '),
+      comment: '',
       equipment: String(raw.equipment || '').trim(),
       weight: String(raw.weight || '').trim(),
       pickup: String(raw.pickup || '').trim(),
@@ -2298,8 +2306,45 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     };
   }
 
+  function rememberOpenNote(text) {
+    try { localStorage.setItem('haulSheetOpenNote', JSON.stringify({ id: openLogId, text: String(text == null ? '' : text) })); }
+    catch (e) {}
+  }
+  function onLogNoteInput() {
+    var noteEl = $('logNote');
+    var text = noteEl ? String(noteEl.value || '') : '';
+    if (openLogId) {
+      var row = null;
+      loadLog.forEach(function (r) { if (r && r.id === openLogId) row = r; });
+      if (row) {
+        row.comment = text;
+        loadLogWrite();
+        renderLog();
+      }
+    }
+    rememberOpenNote(text);
+  }
+  function restoreOpenNote() {
+    try {
+      var raw = localStorage.getItem('haulSheetOpenNote');
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!saved || saved.id == null || saved.id === '') return;
+      var row = null;
+      loadLog.forEach(function (r) { if (r && r.id === saved.id) row = r; });
+      if (!row) return;
+      openLogId = saved.id;
+      var noteEl = $('logNote');
+      if (noteEl) noteEl.value = saved.text != null ? String(saved.text) : '';
+    } catch (e) {}
+  }
   function openLogLoad(r) {
     if (!r) return;
+    openLogId = r.id || null;
+    var noteEl = $('logNote');
+    var text = r.comment ? String(r.comment) : '';
+    if (noteEl) noteEl.value = text;
+    rememberOpenNote(text);
     setInput('origin', r.origin || '');
     setInput('destination', r.destination || '');
     setInput('linehaul', num(r.linehaul) > 0 ? String(num(r.linehaul)) : '');
@@ -2435,12 +2480,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       heroWord: v.word,
       taken: false,
       takenAt: '',
-      notes: noteEl ? String(noteEl.value || '').trim() : '',
+      notes: '',
+      comment: noteEl ? String(noteEl.value || '') : '',
       equipment: String(load.equipment || '').trim()
     };
     loadLog.unshift(entry);
+    openLogId = entry.id;
     loadLogWrite();
-    if (noteEl) noteEl.value = '';
+    rememberOpenNote(entry.comment);
     logSay('Added to the log. Check Taken if you haul it.');
     renderLog();
   }
@@ -2470,18 +2517,17 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var bits = ['Keep ' + money(num(r.keepAfterCut)), intn(num(r.loadedMiles)) + ' loaded mi', intn(num(r.deadheadMiles)) + ' deadhead', ppmTxt];
       if (r.equipment) bits.push(r.equipment);
       if (r.notes) bits.push(r.notes);
+      if (r.comment && String(r.comment).trim()) bits.push(String(r.comment).trim());
       if (r.source === 'tracker') bits.push('From Tracker');
       bits.push(r.source === 'bennett' ? 'Bennett' : ('Cut ' + num(r.cutPct) + '%'));
       var laneHtml = '<div class="lane">' + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div>';
       var metaHtml = '<p class="log-meta">' + esc(bits.join(' \u00b7 ')) + '</p>';
-      var mid = r.source === 'tracker'
-        ? '<button type="button" class="log-open" data-id="' + esc(r.id) + '">' + laneHtml + metaHtml + '</button>'
-        : '<div class="grow">' + laneHtml + '</div>';
+      var mid = '<button type="button" class="log-open" data-id="' + esc(r.id) + '">' + laneHtml + metaHtml + '</button>';
       return '<div class="log-row"><div class="top">' +
         '<label class="log-inline"><input type="checkbox" class="log-pick" data-id="' + esc(r.id) + '"' + (logPick[r.id] ? ' checked' : '') + ' /><span class="sr">Select</span></label>' +
         mid +
         '<label class="log-inline taken"><input type="checkbox" class="log-taken" data-id="' + esc(r.id) + '"' + (r.taken ? ' checked' : '') + ' /><span>Taken</span></label>' +
-        '</div>' + (r.source === 'tracker' ? '' : metaHtml) + '</div>';
+        '</div></div>';
     }).join('');
     var all = $('logSelectAll');
     if (all) {
@@ -2534,7 +2580,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if (btn) btn.disabled = true;
     logSay('Building the Excel file\u2026');
     xlsxLoad().then(function () {
-      var headers = ['Date taken', 'Origin', 'Destination', 'Linehaul', 'FSC', 'Accessorials', 'Keep after cut', 'Loaded miles', 'Deadhead', '$/loaded mi', 'Worth', 'Cut %'];
+      var headers = ['Date taken', 'Origin', 'Destination', 'Linehaul', 'FSC', 'Accessorials', 'Keep after cut', 'Loaded miles', 'Deadhead', '$/loaded mi', 'Worth', 'Cut %', 'Comment'];
       var plan = sheetsForTaken(taken, new Date());
       var wb = window.XLSX.utils.book_new();
       plan.names.forEach(function (key) {
@@ -2558,7 +2604,8 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
             num(r.deadheadMiles),
             ppm === '' ? '' : Math.round(Number(ppm) * 100) / 100,
             worthMark(r),
-            num(r.cutPct)
+            num(r.cutPct),
+            r.comment ? String(r.comment) : ''
           ]);
         });
         var ws = window.XLSX.utils.aoa_to_sheet(rows);
@@ -2573,6 +2620,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   }
   function bindLoadLog() {
     if ($('btnLogAdd')) $('btnLogAdd').addEventListener('click', addCurrentLoad);
+    if ($('logNote')) $('logNote').addEventListener('input', onLogNoteInput);
     if ($('btnLogDelete')) $('btnLogDelete').addEventListener('click', deleteSelected);
     if ($('btnLogExport')) $('btnLogExport').addEventListener('click', exportTaken);
     if ($('logSelectAll')) $('logSelectAll').addEventListener('change', function () {
@@ -2694,6 +2742,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   };
 
   loadLogRead();
+  restoreOpenNote();
   pullSharedLoads();
   setBennett(false);
   bind();
