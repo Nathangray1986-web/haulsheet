@@ -18,7 +18,6 @@ jobs:
           set -euo pipefail
           : > /tmp/assembled.html
           for f in $(ls chunks/*.b64 | sort); do
-            # strip whitespace/newlines just in case
             tr -d '\n\r \t' < "$f" | base64 -d >> /tmp/assembled.html
           done
           echo "assembled bytes=$(wc -c < /tmp/assembled.html)"
