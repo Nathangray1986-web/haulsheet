@@ -2060,11 +2060,46 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
     set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on the rate after fuel and extras'));
   }
-  var routeMap = null, routeLine = null, routeMapSig = '';
+  var routeMap = null, routeLine = null, routeMapSig = '', routeTiles = null, routeTileKey = null;
   function routeLineSig(pts) {
     if (!pts || pts.length < 2) return '';
     var a = pts[0], b = pts[pts.length - 1];
     return String(pts.length) + '|' + a[0] + ',' + a[1] + '|' + b[0] + ',' + b[1];
+  }
+  function osmRouteTiles() {
+    return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19
+    });
+  }
+  function syncRouteTiles(map) {
+    var key = hereKey();
+    if (routeTiles && routeTileKey === key) return;
+    if (routeTiles) {
+      try { map.removeLayer(routeTiles); } catch (eT) {}
+      routeTiles = null;
+    }
+    routeTileKey = key;
+    var layer;
+    if (key) {
+      layer = L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=logistics.day&apiKey=' + encodeURIComponent(key), {
+        attribution: '&copy; HERE',
+        maxZoom: 20
+      });
+      var swapped = false;
+      layer.on('tileerror', function () {
+        if (swapped) return;
+        swapped = true;
+        try { map.removeLayer(layer); } catch (eH) {}
+        if (routeTiles === layer && routeTileKey === key) {
+          routeTiles = osmRouteTiles().addTo(map);
+        }
+      });
+    } else {
+      layer = osmRouteTiles();
+    }
+    routeTiles = layer;
+    layer.addTo(map);
   }
   function mountRouteMap(pts) {
     var box = document.getElementById('routeMap');
@@ -2077,13 +2112,11 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         routeMap = map;
         routeLine = null;
         routeMapSig = '';
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; OpenStreetMap &copy; CARTO',
-          subdomains: 'abcd',
-          maxZoom: 20
-        }).addTo(map);
+        routeTiles = null;
+        routeTileKey = null;
       }
       var map = routeMap;
+      syncRouteTiles(map);
       if (routeMapSig !== sig || !routeLine) {
         if (routeLine) { try { map.removeLayer(routeLine); } catch (e1) {} routeLine = null; }
         routeLine = L.polyline(pts, { color: '#c45c26', weight: 5 }).addTo(map);
