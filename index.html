@@ -189,7 +189,7 @@
         </div>
         <div class="row3">
           <label><span>Rate $ (whole load)</span><input id="linehaul" type="number" inputmode="decimal" min="0" step="0.01" value="1000" /></label>
-          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="0.40" /></label>
+          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="1.00" /></label>
           <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="50" /></label>
         </div>
         <div id="cutWrap">
@@ -934,7 +934,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   var STNAME = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'};
 
   var load = {
-    origin: '', destination: '', linehaul: 1000, fsc: 0.40, accessorials: 50,
+    origin: '', destination: '', linehaul: 1000, fsc: 1.00, accessorials: 50,
     cutPct: DISPATCH_DEFAULT, bennett: false, loaded: 0, deadhead: 0,
     width: '', height: '', length: '', weight: '', equipment: '',
     costs: 0, mpg: 6.5, dieselGal: 0, runCpm: 0, target: 0.4, startCity: '',
