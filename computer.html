@@ -1,0 +1,2654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Haul Sheet" />
+  <meta name="theme-color" content="#0f1419" />
+  <title>Haul Sheet — Computer</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+    :root {
+      --bg: #0f1419; --surface: #1a222c; --raised: #243040; --line: #334155;
+      --fg: #f1f5f9; --muted: #94a3b8; --accent: #f5c542; --good: #3dd68c;
+      --bad: #f07178; --ink: #0f1419; --warn: #f5c542;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; min-height: 100%; background: var(--bg); color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.4; -webkit-text-size-adjust: 100%;
+    }
+    h1 { letter-spacing: -0.02em; margin: 0.2rem 0 0.35rem; }
+    h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    .eyebrow {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.7rem; letter-spacing: 0.14em; color: var(--accent); text-transform: uppercase; margin: 0;
+    }
+    .sub { color: var(--muted); margin: 0 0 1rem; }
+    .hero {
+      border-radius: 1rem; padding: 1.25rem 1.25rem 1.4rem; margin-bottom: 1rem;
+    }
+    .hero.yes { background: var(--good); color: var(--ink); }
+    .hero.maybe { background: var(--accent); color: var(--ink); }
+    .hero.no { background: var(--fg); color: var(--bg); }
+    .hero.wait { background: var(--raised); color: var(--fg); }
+    .hero .label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .hero .big { font-size: 2.75rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; margin: 0.35rem 0 0.4rem; }
+    .hero .word { font-size: 1.35rem; font-weight: 700; margin: 0.5rem 0 0.15rem; }
+    .hero .hint { opacity: 0.85; font-size: 0.95rem; }
+    .card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 0.85rem;
+      padding: 1rem; margin-bottom: 0.85rem;
+    }
+    label { display: block; margin-bottom: 0.7rem; }
+    label > span { display: block; color: var(--muted); font-size: 0.88rem; margin-bottom: 0.3rem; }
+    input[type="number"], input[type="text"], input[type="password"] {
+      width: 100%; height: 2.75rem; border-radius: 0.6rem; border: 1px solid var(--line);
+      background: var(--bg); color: var(--fg); font-size: 1.05rem; padding: 0 0.75rem; outline: none;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus { border-color: var(--accent); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.65rem; }
+    .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .toggles button {
+      height: 2.75rem; border-radius: 0.6rem; border: 1px solid var(--line);
+      background: var(--bg); color: var(--fg); font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .toggles button.on { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+    .btn {
+      display: inline-block; height: 2.75rem; padding: 0 1rem; border-radius: 0.6rem;
+      border: 1px solid var(--line); background: var(--raised); color: var(--fg);
+      font-size: 1rem; font-weight: 600; cursor: pointer; margin: 0.25rem 0.35rem 0.25rem 0;
+    }
+    .btn:disabled { opacity: 0.55; cursor: default; }
+    .btn.primary { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+    .hint, .note { color: var(--muted); font-size: 0.92rem; margin: 0.4rem 0; }
+    .note.neg { color: var(--bad); }
+    .note.warn { color: var(--accent); }
+    .line { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
+    .line:last-child { border-bottom: 0; }
+    .line strong { font-variant-numeric: tabular-nums; }
+    .drop {
+      display: block; border: 1.5px dashed var(--accent); border-radius: 0.85rem;
+      padding: 1.1rem 1rem; text-align: center; cursor: pointer; margin-bottom: 0.85rem;
+      background: var(--surface);
+    }
+    .drop.over { background: var(--raised); }
+    .drop.busy { opacity: 0.7; }
+    .drop strong { display: block; font-size: 1.1rem; margin: 0.25rem 0; }
+    .drop .hint { margin: 0.25rem 0 0; }
+    .drop input { display: none; }
+    .drop-preview { max-width: 100%; max-height: 160px; margin-top: 0.6rem; border-radius: 0.5rem; display: none; }
+    .drop-preview:not([hidden]) { display: block; margin-left: auto; margin-right: auto; }
+    .drop-note { color: var(--muted); font-size: 0.9rem; margin: 0.5rem 0 0; text-align: left; }
+    .board-card { margin-top: 0.85rem; }
+    .board { text-align: left; }
+    .board li { border-bottom: 1px solid var(--line); padding: 0; }
+    .board li:last-child { border-bottom: 0; }
+    button.board-pick {
+      display: block; width: 100%; text-align: left; background: transparent; color: inherit;
+      border: 0; font: inherit; font-weight: 700; padding: 12px 2px; cursor: pointer;
+      user-select: none; -webkit-user-select: none;
+    }
+    button.board-pick .board-lane { display: block; }
+    button.board-pick .board-pay { display: block; font-weight: 500; margin-top: 0.2rem; }
+
+    .list { list-style: none; padding: 0; margin: 0; }
+    .list.plain { list-style: disc; padding-left: 1.2rem; }
+    .list li { margin: 0.35rem 0; }
+    .mark {
+      display: inline-block; min-width: 4.2rem; text-align: center; font-size: 0.75rem;
+      font-weight: 700; letter-spacing: 0.04em; border-radius: 0.35rem; padding: 0.15rem 0.4rem; margin-right: 0.35rem;
+    }
+    .mark.ok { background: rgba(61,214,140,0.2); color: var(--good); }
+    .mark.over { background: rgba(240,113,120,0.2); color: var(--bad); }
+    .mark.unknown, .mark.note { background: rgba(245,197,66,0.15); color: var(--accent); }
+    .maplink { color: var(--accent); }
+    .scroll { overflow-x: auto; }
+    table.fuelt { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    table.fuelt th, table.fuelt td { text-align: left; padding: 0.4rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.fuelt small { display: block; color: var(--muted); }
+    table.fuelt small.old { color: var(--bad); }
+    .label { font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0.35rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .foot { color: var(--muted); font-size: 0.85rem; margin-top: 1.25rem; }
+
+    .log-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem 0.75rem; margin: 0.35rem 0 0.5rem; }
+    label.log-inline { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-weight: 600; }
+    label.log-inline > span { display: inline; margin: 0; color: var(--fg); font-size: 0.92rem; }
+    label.log-inline.taken { margin-left: auto; white-space: nowrap; }
+    .log-row { border-top: 1px solid var(--line); padding: 0.6rem 0; }
+    .log-row .top { display: flex; gap: 0.5rem; align-items: flex-start; }
+    .log-row .grow { flex: 1; min-width: 0; }
+    .log-row .lane { font-weight: 700; }
+    .log-row .when { margin-top: 0.15rem; color: var(--muted); font-size: 0.88rem; }
+    .log-meta { color: var(--muted); font-size: 0.88rem; margin: 0.25rem 0 0 1.7rem; }
+    button.log-open {
+      display: block; flex: 1; min-width: 0; text-align: left; background: transparent; color: inherit;
+      border: 0; font: inherit; padding: 8px 4px; cursor: pointer; user-select: none; -webkit-user-select: none;
+    }
+    button.log-open .log-meta { margin-left: 0; }
+    .log-row .mark { min-width: 7.2rem; }
+    .mark.yes { background: rgba(61,214,140,0.2); color: var(--good); }
+    .mark.maybe { background: rgba(245,197,66,0.2); color: var(--accent); }
+    .mark.no { background: rgba(241,245,249,0.12); color: var(--fg); }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    input[type="checkbox"] { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+
+    body { font-size: 16px; }
+    .wrap { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1.25rem 3rem; }
+    h1 { font-size: 2rem; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.95fr); gap: 1rem; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .stack { display: flex; flex-direction: column; gap: 0.15rem; }
+    .hero .big { font-size: 3rem; }
+    @media (max-width: 640px) { .row2, .row3 { grid-template-columns: 1fr; } }
+    #routeMap { height: 240px; width: 100%; border-radius: 0.85rem; margin: 0 0 0.75rem; overflow: hidden; background: var(--raised); }
+</style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Haul Sheet · Computer</p>
+    <h1>What you keep</h1>
+    <p class="sub">Drop a load-board screenshot or type the numbers. Cut is only on linehaul (default 24.7%). Same tools as the phone file — wider layout.</p>
+  </header>
+  
+    <div class="hero wait" id="hero">
+      <div class="label">What you keep</div>
+      <div class="big" id="keepAfterCut">$0.00</div>
+      <div class="word" id="heroWord">Enter a rate</div>
+      <div class="hint" id="keepHint">Linehaul minus cut, plus fuel surcharge and extras</div>
+    </div>
+  <div class="grid">
+    <div class="stack">
+      
+    <label class="drop" id="dropZone" for="shotFile">
+      <span class="eyebrow">Screenshot</span>
+      <strong>Drop a load-board shot</strong>
+      <p class="hint">One load fills origin, destination, rate, and miles. A full board lists every lane. Paste works too.</p>
+      <input id="shotFile" type="file" accept="image/*" />
+      <img id="shotPreview" class="drop-preview" alt="Screenshot preview" hidden />
+      <p class="drop-note" id="shotNote">Reading runs on this computer with Tesseract (CDN). No Truckstop login. No booking.</p>
+    </label>
+      
+      <div class="card" id="moneyCard">
+        <h2>Pay after the cut</h2>
+        <div class="toggles">
+          <button type="button" id="srcLease" class="on">Lease cut</button>
+          <button type="button" id="srcBennett">Bennett (0% cut)</button>
+        </div>
+    <div id="boardOut"></div>
+        <div class="row2">
+          <label><span>Origin</span><input id="origin" type="text" placeholder="City, ST" autocomplete="off" /></label>
+          <label><span>Destination</span><input id="destination" type="text" placeholder="City, ST" autocomplete="off" /></label>
+        </div>
+        <div class="row3">
+          <label><span>Rate $ (whole load)</span><input id="linehaul" type="number" inputmode="decimal" min="0" step="0.01" value="1000" /></label>
+          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="0.40" /></label>
+          <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="50" /></label>
+        </div>
+        <div id="cutWrap">
+          <label><span>Lease cut % (only on linehaul)</span><input id="cutPct" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="24.7" /></label>
+        </div>
+        <p class="hint">The rate is the whole amount the load pays. Fuel and tarp come out of it first. The cut is only on what is left, then fuel and tarp are added back. Example: rate 2000, FSC $1.00/mi × 521 mi = $521, tarp 0 → cut hits $1479, cut $365.31, keep $1634.69. The load does not pay $2521.</p>
+        <div class="row2">
+          <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
+          <label><span>Deadhead miles</span><input id="deadhead" type="number" inputmode="decimal" min="0" step="1" value="" /></label>
+        </div>
+        <div class="row3">
+          <label><span>Truck MPG</span><input id="mpg" type="number" inputmode="decimal" min="0" step="0.1" value="6.5" /></label>
+          <label><span>Diesel $/gal</span><input id="dieselGal" type="number" inputmode="decimal" min="0" step="0.001" value="" placeholder="or from fuel stops" /></label>
+          <label><span>Tires, oil, insurance, repairs $/mi</span><input id="runCpm" type="number" inputmode="decimal" min="0" step="0.01" value="" placeholder="your number" /></label>
+        </div>
+        <p class="hint">Trip cost is fuel burned plus that per-mile number, on loaded miles and deadhead. Fuel = miles ÷ MPG × diesel. If diesel is blank and fuel stops loaded, the average street price on the route is used. MPG starts at 6.5 until you change it. The tires/oil/insurance box stays blank until you set it — nothing is guessed.</p>
+        <div class="row2">
+          <label><span>Target $/loaded mi</span><input id="target" type="number" inputmode="decimal" min="0" step="0.01" value="0.4" /></label>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2>Dims &amp; weight</h2>
+        <div class="row2">
+          <label><span>Equipment</span><input id="equipment" type="text" placeholder="Flatbed, step deck…" /></label>
+          <label><span>Weight (lb)</span><input id="weight" type="text" placeholder="48000" /></label>
+        </div>
+        <div class="row3">
+          <label><span>Length</span><input id="length" type="text" placeholder="48 ft" /></label>
+          <label><span>Width</span><input id="width" type="text" placeholder="8 ft 6 in" /></label>
+          <label><span>Height</span><input id="height" type="text" placeholder="8 ft 6 in" /></label>
+        </div>
+        <div id="dimsOut"></div>
+      </div>
+      
+      <div class="card">
+        <h2>Route</h2>
+        <label><span>Truck starts at (optional, for deadhead)</span><input id="startCity" type="text" placeholder="City, ST" autocomplete="off" /></label>
+        <label><span>HERE API key (optional — stays in this browser only)</span><input id="here-key" type="password" placeholder="Paste key, or leave blank for highway miles" autocomplete="off" /></label>
+        <p class="hint">With a key: truck routing like Load Desk. Without: public OSRM + Nominatim, labeled highway miles (not a truck route). Key is never hardcoded.</p>
+        <button class="btn primary" type="button" id="btnRoute">Get route</button>
+        <div id="routeOut"></div>
+      </div>
+      
+      <div class="card">
+        <h2>Fuel stops</h2>
+        <button class="btn" type="button" id="btnFuel" hidden>Get diesel on this route</button>
+        <div id="fuelOut"></div>
+      </div>
+      
+      <div class="card">
+        <h2>Weather along the route</h2>
+        <button class="btn" type="button" id="btnWx">Refresh weather</button>
+        <div id="weatherOut"></div>
+      </div>
+      
+      <div class="card">
+        <h2>Ports &amp; weigh sites</h2>
+        <div id="poiOut"></div>
+      </div>
+      
+      <div class="card">
+        <h2>Construction (511 links)</h2>
+        <div id="workOut"></div>
+      </div>
+    </div>
+    <div class="stack">
+      
+      <div class="card">
+        <h2>Statement</h2>
+        <div class="line"><span>Rate (what the load pays)</span><strong id="oLh">$0.00</strong></div>
+        <div class="line"><span>Fuel surcharge</span><strong id="oFsc">$0.00</strong></div>
+        <div class="line"><span>Tarp / other</span><strong id="oAcc">$0.00</strong></div>
+        <div class="line"><span>Cut <span id="oCutPct"></span></span><strong id="oCut">$0.00</strong></div>
+        <div class="line"><span>Broker total</span><strong id="oGross">$0.00</strong></div>
+        <div class="line"><span>What you keep after the cut</span><strong id="oNet">$0.00</strong></div>
+        <div class="line"><span>Fuel burned</span><strong id="oFuelBurn">$0.00</strong></div>
+        <div class="line"><span>Tires, oil, insurance, repairs</span><strong id="oRunOther">$0.00</strong></div>
+        <div class="line"><span>Trip costs</span><strong id="oCost">$0.00</strong></div>
+        <div class="line"><span>Cost to run / mile</span><strong id="oRunCpm">—</strong></div>
+        <div class="line"><span>Profit after costs</span><strong id="oProfit">$0.00</strong></div>
+        <div class="line"><span>$ / loaded mile</span><strong id="oPpm">—</strong></div>
+      </div>
+      <div class="card">
+        <h2>How the cut works</h2>
+        <p class="hint">The rate is the whole pay. Fuel = FSC $/loaded mi × loaded miles (0 if miles are blank). Tarp comes out of the rate too. Cut = 24.7% of (rate − fuel − tarp) only, then fuel and tarp are added back. Example: rate 2000, FSC $1/mi × 521, tarp 0 → fuel $521, cut hits $1479, cut $365.31, keep $1634.69.</p>
+        <p class="hint">No accounts. No booking. HERE key (if any) stays in this browser’s localStorage only.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="loadLogCard">
+    <h2>Load log</h2>
+    <p class="hint">Worth taking, Thin, and Pass match the big box. Taken is only the loads you actually haul. Saved in this browser only.</p>
+    <label><span>Note (optional)</span><input id="logNote" type="text" placeholder="Broker, tarp, whatever" autocomplete="off" /></label>
+    <button class="btn primary" type="button" id="btnLogAdd">Add current load to log</button>
+    <button class="btn" type="button" id="btnLogExport">Export taken to Excel</button>
+    <p class="note" id="logAvg">Avg keep $/mi on taken loads: — · 0 loads · 0 mi</p>
+    <p class="note" id="logMsg"></p>
+    <div class="log-tools">
+      <label class="log-inline"><input type="checkbox" id="logSelectAll" /> <span>Select all</span></label>
+      <button class="btn" type="button" id="btnLogDelete" disabled>Delete selected</button>
+    </div>
+    <div id="logList"></div>
+  </div>
+  <p class="foot">Same features as the phone file. Opens as a local HTML file (file://).</p>
+</div>
+
+<script>window.HAUL_POI = {"wim":[[31.02764,-93.97835,"TX","WT4142"],[35.55577,-82.70624,"NC","W01110"],[32.67737,-107.06719,"NM","W00300"],[46.97051,-122.9322,"WA","W97AAA"],[46.93994,-119.98615,"WA","W42AAA"],[47.68817,-117.06901,"WA","W24AAA"],[31.85581,-106.68428,"NM","TERESA"],[32.19328,-108.30112,"NM","P00400"],[48.31624,-117.81133,"WA","P34AAA"],[47.54579,-117.21409,"WA","P30AAA"],[46.59534,-120.47791,"WA","P29AAA"],[47.84536,-117.35442,"WA","P28AAA"],[48.35198,-119.58776,"WA","P23AAA"],[48.9872,-119.45597,"WA","P22AAA"],[48.18828,-122.1285,"WA","P21AAA"],[47.77404,-122.15475,"WA","P19AAA"],[47.4835,-123.07981,"WA","P18AAA"],[46.12484,-119.60169,"WA","P17AAA"],[47.5391,-117.40007,"WA","P15AAA"],[46.73378,-117.22446,"WA","P14AAA"],[46.54865,-117.09662,"WA","P13AAA"],[47.1109,-118.43018,"WA","P10AAA"],[46.04779,-119.22452,"WA","P09AAA"],[46.42784,-120.34154,"WA","P08AAA"],[45.57956,-122.43815,"WA","P06AAA"],[46.43897,-117.95163,"WA","P05AAA"],[48.83164,-122.56199,"WA","P04AAA"],[46.41636,-120.39923,"WA","P03AAA"],[48.97486,-122.7226,"WA","P9AAAA"],[47.07393,-118.40989,"WA","P7CAAA"],[47.43086,-122.221,"WA","P6AAAA"],[47.86869,-122.24473,"WA","P1SAAA"],[47.86869,-122.24473,"WA","P1NAAA"],[45.34398,-118.13402,"OR","MC3103"],[45.92686,-119.32647,"OR","MC3006"],[45.59331,-118.53465,"OR","MC3005"],[45.68926,-122.87218,"OR","MC2601"],[45.20067,-122.83246,"OR","MC2409"],[45.14564,-122.88618,"OR","MC2408"],[44.28235,-117.21163,"OR","MC2306"],[44.28119,-117.2109,"OR","MC2305"],[42.25727,-121.80102,"OR","MC1807"],[42.27452,-121.81153,"OR","MC1805"],[44.47638,-121.19395,"OR","MC1604"],[44.4583,-121.1995,"OR","MC1603"],[42.21854,-122.71451,"OR","MC1507"],[42.22553,-122.73507,"OR","MC1506"],[45.66497,-121.89155,"OR","MC1404"],[45.69139,-121.68774,"OR","MC1402"],[43.04625,-123.33168,"OR","MC1008"],[43.05893,-123.33959,"OR","MC1007"],[43.952,-121.34964,"OR","MC0906"],[32.34959,-108.76021,"NM","K10200"],[47.68817,-117.06901,"WA","E24AAA"],[47.15833,-122.44872,"WA","D3AAAA"],[31.86303,-107.65021,"NM","COLUMB"],[40.98685,-74.09821,"NJ","CO0821"],[46.3154,-119.09301,"WA","B03AAA"],[46.98264,-123.56476,"WA","B02AAA"],[28.25513,-81.33073,"FL","979961"],[26.17933,-80.30672,"FL","979933"],[26.71523,-80.68418,"FL","939964"],[26.91493,-80.14379,"FL","939952"],[44.16709,-85.43812,"MI","833399"],[42.10912,-83.24139,"MI","829699"],[42.18002,-83.38803,"MI","829189"],[42.21984,-83.46756,"MI","828839"],[37.93893,-87.50244,"IN","826500"],[38.02847,-87.65309,"IN","826400"],[42.41438,-83.7649,"MI","818239"],[42.21989,-85.82269,"MI","807219"],[28.8875,-81.27905,"FL","799906"],[31.03229,-91.33114,"MS","790010"],[41.84064,-85.67863,"MI","787119"],[42.93063,-82.5064,"MI","776469"],[42.98668,-82.90807,"MI","776369"],[46.34502,-85.98352,"MI","752199"],[32.24533,-90.74946,"MS","750370"],[32.35338,-90.78911,"MS","750340"],[32.4418,-90.81986,"MS","750220"],[30.65501,-81.66265,"FL","749923"],[38.19641,-87.01545,"IN","746200"],[21.33666,-157.88553,"HI","741518"],[35.23862,-91.69184,"AR","730222"],[35.44846,-91.72871,"AR","730076"],[44.31699,-84.45024,"MI","724149"],[44.26266,-84.80306,"MI","724129"],[34.77398,-88.14786,"MS","710107"],[28.32957,-80.77445,"FL","709919"],[43.05268,-85.93697,"MI","705099"],[42.86597,-85.80178,"MI","705059"],[33.17694,-92.63472,"AR","700040"],[39.07473,-85.28582,"IN","695200"],[45.14035,-84.67038,"MI","694049"],[34.56724,-89.94312,"MS","690150"],[33.44297,-90.72124,"MS","670400"],[35.95935,-91.53912,"AR","670027"],[37.93892,-87.86875,"IN","656300"],[41.63686,-87.03993,"IN","644900"],[41.5305,-87.03254,"IN","644700"],[36.05934,-92.86915,"AR","641932"],[41.44281,-86.98571,"IN","640436"],[34.57944,-92.495,"AR","620176"],[30.7462,-85.51048,"FL","619968"],[43.19775,-86.20492,"MI","615289"],[32.05044,-89.98587,"MS","610470"],[45.00789,-84.10362,"MI","604329"],[41.7624,-83.69466,"MI","588729"],[31.00658,-90.50429,"MS","570510"],[30.49038,-89.67244,"MS","550530"],[44.96499,-92.66825,"WI","550154"],[30.90502,-85.5221,"FL","539957"],[30.71949,-85.03963,"FL","539943"],[42.61194,-88.98556,"WI","530275"],[33.49539,-88.81039,"MS","530027"],[41.22761,-86.26101,"IN","504600"],[46.03142,-85.09134,"MI","492029"],[33.49596,-89.74305,"MS","490151"],[30.50989,-87.29086,"FL","489949"],[40.03254,-85.74003,"IN","483800"],[42.6337,-84.02115,"MI","478049"],[34.85198,-89.66661,"MS","470002"],[41.65393,-86.63365,"IN","464500"],[41.74823,-86.76963,"IN","464300"],[32.5502,-90.08869,"MS","450600"],[31.53394,-90.48012,"MS","430260"],[42.84984,-85.60576,"MI","419759"],[43.93971,-90.65091,"WI","410253"],[44.83339,-85.13077,"MI","403069"],[34.00366,-91.57738,"AR","400062"],[42.17338,-84.36464,"MI","387049"],[42.28469,-84.28328,"MI","387029"],[20.87082,-156.46669,"HI","380015"],[20.88083,-156.45212,"HI","380008"],[41.66643,-71.51112,"RI","380003"],[33.08593,-93.65741,"AR","370001"],[30.38871,-83.32658,"FL","359902"],[34.33017,-92.1595,"AR","350019"],[42.54521,-84.44327,"MI","338029"],[41.66564,-71.16237,"RI","330007"],[41.62854,-71.13672,"RI","330006"],[30.53374,-83.07002,"FL","329956"],[41.44472,-71.47691,"RI","320008"],[41.92495,-71.50507,"RI","319995"],[41.92427,-71.50598,"RI","319994"],[39.3141,-119.4252,"NV","310810"],[41.99211,-84.64225,"MI","308129"],[39.82543,-85.69151,"IN","303600"],[30.45764,-88.46032,"MS","301515"],[30.45378,-88.88299,"MS","301500"],[42.50629,-87.91223,"WI","300864"],[30.25178,-82.51512,"FL","299936"],[39.99875,-86.00396,"IN","293100"],[34.35982,-88.28146,"MS","291211"],[34.21459,-88.20262,"MS","290007"],[40.61005,-85.53662,"IN","272300"],[46.46526,-90.19205,"MI","271009"],[29.83753,-82.16528,"FL","269963"],[29.54332,-82.3321,"FL","269904"],[38.16943,-87.48983,"IN","266100"],[33.15102,-89.85629,"MS","260685"],[46.4655,-90.19215,"WI","260187"],[42.96726,-83.78199,"MI","256449"],[43.2086,-83.76887,"MI","256119"],[42.01272,-71.58388,"RI","250057"],[42.53428,-84.82075,"MI","238869"],[30.35479,-89.43416,"MS","230040"],[41.59515,-71.43624,"RI","230000"],[38.28322,-85.92866,"IN","225400"],[46.02914,-88.06003,"MI","221199"],[33.83518,-89.83884,"MS","220430"],[45.91237,-86.99237,"MI","212229"],[45.7298,-87.22211,"MI","211459"],[43.74528,-88.40389,"WI","201124"],[43.71537,-88.6751,"WI","200124"],[41.37871,-71.49273,"RI","200003"],[42.82074,-84.81542,"MI","195319"],[43.0243,-84.54407,"MI","195019"],[39.37409,-119.11394,"NV","190133"],[44.76552,-91.4814,"WI","180731"],[27.09999,-82.23238,"FL","179967"],[41.49105,-85.05385,"IN","172000"],[34.86723,-90.13062,"MS","170694"],[28.05314,-82.00487,"FL","169927"],[46.61876,-91.94166,"WI","160500"],[35.88311,-91.00036,"AR","160460"],[37.63955,-76.40659,"VA","160090"],[34.12904,-90.66798,"MS","140170"],[41.44456,-71.79271,"RI","140043"],[42.28289,-84.87259,"MI","137169"],[42.29739,-85.02348,"MI","137159"],[40.70514,-117.01828,"NV","132130"],[43.01777,-89.2001,"WI","131576"],[41.91652,-71.79548,"RI","130044"],[41.83466,-84.99823,"MI","127269"],[33.75902,-118.02197,"CA","126590"],[33.9253,-117.88016,"CA","126580"],[41.79596,-71.78985,"RI","120003"],[41.85235,-71.769,"RI","120002"],[41.76908,-86.73794,"MI","117189"],[32.85495,-117.11904,"CA","116850"],[32.85764,-117.1843,"CA","116830"],[32.83375,-117.11904,"CA","116820"],[33.14895,-117.19686,"CA","116770"],[33.06511,-117.29214,"CA","116610"],[32.71836,-116.47072,"CA","116210"],[39.46354,-87.07009,"IN","110106"],[41.57619,-71.77303,"RI","110031"],[28.02784,-82.20347,"FL","109962"],[27.88925,-82.3483,"FL","109953"],[39.77903,-75.47743,"DE","105004"],[37.84428,-120.54611,"CA","104200"],[39.11793,-75.51111,"DE","104002"],[35.2189,-114.12319,"AZ","103998"],[37.01576,-113.6134,"AZ","103996"],[37.12857,-121.03133,"CA","102850"],[37.08693,-120.99906,"CA","102840"],[34.90968,-109.23819,"AZ","102237"],[35.25933,-111.5513,"AZ","102068"],[34.46044,-110.4024,"AZ","101563"],[35.70941,-109.53481,"AZ","101555"],[34.04047,-109.67381,"AZ","101533"],[34.2854,-110.13296,"AZ","101520"],[33.15329,-112.64996,"AZ","100920"],[31.38946,-109.51246,"AZ","100879"],[35.21986,-109.326,"AZ","100575"],[34.7289,-114.33119,"AZ","100501"],[32.24778,-109.1374,"AZ","100192"],[33.60804,-114.48979,"AZ","100064"],[32.91966,-112.64647,"AZ","100023"],[32.7044,-114.61041,"AZ","100002"],[43.64593,-83.9819,"MI","96429"],[21.39612,-158.16215,"HI","93068"],[45.08053,-91.50293,"WI","90003"],[34.03051,-117.59347,"CA","88770"],[34.00481,-117.65082,"CA","88690"],[40.89726,-124.08329,"CA","88550"],[34.06557,-117.50216,"CA","88240"],[33.64269,-116.13335,"CA","87780"],[34.08676,-117.20064,"CA","87570"],[33.44695,-117.13618,"CA","86090"],[33.92457,-116.86084,"CA","86080"],[34.11308,-117.524,"CA","86050"],[34.90258,-116.88677,"CA","86040"],[33.93139,-116.83123,"CA","80020"],[36.32949,-93.56511,"AR","80004"],[26.75402,-81.05527,"FL","79918"],[33.77691,-118.23392,"CA","79140"],[33.75924,-118.23564,"CA","79120"],[40.89726,-124.08329,"CA","79090"],[34.2087,-118.47332,"CA","79020"],[40.73808,-114.04378,"NV","75280"],[40.94951,-115.60496,"NV","75260"],[33.85625,-118.20347,"CA","74210"],[41.76994,-71.42915,"RI","70010"],[41.76977,-71.42853,"RI","70008"],[37.14012,-120.27145,"CA","69920"],[35.32974,-118.80756,"CA","69720"],[44.07044,-91.63306,"WI","60276"],[35.65555,-120.3982,"CA","55440"],[39.00331,-119.77954,"NV","53170"],[36.70768,-77.1518,"VA","50428"],[38.13979,-122.46688,"CA","49150"],[37.56217,-121.90536,"CA","49140"],[38.29652,-122.30169,"CA","49130"],[38.00141,-122.14953,"CA","49120"],[37.56617,-122.27057,"CA","49100"],[37.6196,-122.07584,"CA","49090"],[37.01273,-121.34432,"CA","49070"],[38.21511,-122.22005,"CA","49060"],[37.59847,-122.37413,"CA","49050"],[37.44977,-122.2776,"CA","49040"],[38.41706,-121.94422,"CA","49030"],[37.99343,-122.30159,"CA","49020"],[38.39586,-121.92401,"CA","49010"],[37.72364,-121.94015,"CA","49000"],[37.22634,-121.97522,"CA","44320"],[40.5977,-87.38007,"IN","41000"],[36.48846,-94.37732,"AR","40712"],[42.43709,-86.24763,"MI","37319"],[35.72036,-115.36294,"NV","35440"],[38.67123,-121.59102,"CA","35430"],[35.93421,-114.83925,"NV","35410"],[36.03036,-115.18063,"NV","35340"],[38.33702,-121.33271,"CA","35010"],[38.70748,-121.30946,"CA","33000"],[38.70748,-121.30946,"CA","32990"],[39.75419,-121.84514,"CA","32010"],[38.97819,-121.10831,"CA","32000"],[36.26891,-115.25865,"NV","30720"],[36.62766,-79.36465,"VA","30387"],[31.12597,-90.8525,"MS","30090"],[40.32697,-122.28118,"CA","23130"],[41.7789,-122.04739,"CA","23110"],[40.71663,-122.33035,"CA","23090"],[41.15011,-84.82841,"IN","22700"],[40.28395,-120.49045,"CA","21500"],[39.1091,-123.19513,"CA","19330"],[39.07594,-122.93087,"CA","17720"],[40.91475,-85.01034,"IN","12200"],[39.32409,-118.78211,"NV","12140"],[40.63708,-124.21172,"CA","11100"],[34.36908,-91.15166,"AR","10009"],[39.55313,-74.81017,"NJ","00322H"],[39.807,-75.29345,"NJ","00295L"],[39.69402,-75.4685,"NJ","00295D"],[39.92152,-74.97859,"NJ","00295C"],[40.75195,-74.52605,"NJ","00287A"],[41.25702,-74.80089,"NJ","00206S"],[40.42916,-74.65838,"NJ","00206M"],[39.77519,-74.73876,"NJ","00206A"],[40.55392,-74.72201,"NJ","00202B"],[40.20176,-74.6529,"NJ","00195B"],[40.15911,-74.69395,"NJ","00130B"],[40.2972,-74.51562,"NJ","00130A"],[40.2868,-74.7491,"NJ","00095B"],[40.9072,-74.6021,"NJ","00080B"],[40.67224,-75.11404,"NJ","00078E"],[39.67857,-74.23435,"NJ","00072B"],[39.89403,-74.89123,"NJ","00070B"],[40.10419,-74.69376,"NJ","00068A"],[40.83056,-74.83045,"NJ","00057B"],[39.39377,-75.01496,"NJ","00049M"],[39.36378,-74.93121,"NJ","00049C"],[39.68241,-75.45699,"NJ","00040A"],[39.97024,-74.73696,"NJ","00038S"],[40.19167,-74.11711,"NJ","00034B"],[40.22167,-74.13329,"NJ","00033W"],[40.57201,-74.86009,"NJ","00031D"],[40.72481,-74.9723,"NJ","00031C"],[40.38928,-74.83043,"NJ","00031B"],[39.60393,-74.75577,"NJ","00030M"],[39.48786,-74.58897,"NJ","00030G"],[40.59126,-74.64949,"NJ","00022B"],[40.51915,-74.45163,"NJ","00018D"],[40.49999,-74.44128,"NJ","00018C"],[40.2805,-74.12834,"NJ","00018B"],[19.80436,-155.09984,"HI","00017J"],[41.06452,-74.12883,"NJ","00017B"],[39.59215,-74.4264,"NJ","00009B"],[40.81402,-74.10848,"NJ","00003R"],[40.82924,-74.13774,"NJ","00003C"],[30.47934,-90.52144,"LA","00002W"],[32.45215,-94.02204,"LA","00001W"],[41.92665,-74.86337,"NY","9631"],[42.7145,-74.27337,"NY","9580"],[41.23715,-73.06014,"CT","9031"],[42.02505,-72.14302,"CT","9027"],[41.42302,-73.36671,"CT","9024"],[41.518,-72.11959,"CT","9007"],[41.38488,-73.55763,"NY","8411"],[41.35564,-74.68946,"NY","8382"],[41.53544,-73.7844,"NY","8280"],[38.7384,-75.59235,"DE","8096"],[38.71943,-75.11578,"DE","8076"],[39.60612,-75.78116,"DE","8015"],[44.33754,-75.98627,"NY","7381"],[44.99967,-73.36097,"NY","7181"],[44.98927,-73.45711,"NY","7100"],[42.10222,-77.15624,"NY","6485"],[42.44364,-76.90789,"NY","6340"],[42.32903,-77.73741,"NY","6100"],[38.24433,-92.60349,"MO","5554"],[38.24407,-92.60344,"MO","5552"],[43.00409,-78.92174,"NY","5381"],[42.12978,-79.75843,"NY","5280"],[42.50688,-70.9173,"MA","4926"],[42.607,-71.33149,"MA","4285"],[42.97964,-78.16065,"NY","4181"],[42.7904,-76.12524,"NY","3311"],[42.38307,-72.6314,"MA","2396"],[43.43572,-73.46064,"NY","1800"],[40.86723,-74.0485,"NJ","0080DL"],[33.98932,-87.77518,"AL","966"],[32.39186,-85.98556,"AL","965"],[31.36936,-85.56542,"AL","964"],[30.49857,-88.32369,"AL","963"],[30.88836,-88.02567,"AL","961"],[31.64735,-87.70819,"AL","960"],[32.01553,-86.03023,"AL","942"],[33.74024,-87.03314,"AL","934"],[59.47765,-135.29456,"AK","934"],[44.52249,-100.06779,"SD","924"],[44.5128,-100.03607,"SD","923"],[44.4932,-100.0865,"SD","922"],[31.37504,-88.0345,"AL","915"],[33.02926,-86.11357,"AL","911"],[45.6307,-96.98998,"SD","910"],[44.3683,-97.73341,"SD","909"],[45.45775,-98.15293,"SD","903"],[44.32466,-103.43556,"SD","901"],[40.8162,-91.1574,"IA","816"],[43.60889,-96.46103,"SD","813"],[43.999,-103.18,"SD","812"],[44.60173,-103.86095,"SD","811"],[42.64641,-96.63027,"SD","809"],[43.66565,-97.80757,"SD","807"],[43.63064,-96.76989,"SD","806"],[43.9114,-100.34655,"SD","805"],[44.88346,-100.08208,"SD","804"],[43.30346,-100.53234,"SD","802"],[43.45578,-97.99757,"SD","801"],[39.25923,-82.68455,"OH","788"],[39.45778,-82.2145,"OH","786"],[40.80624,-81.82603,"OH","779"],[40.64121,-81.33595,"OH","776"],[40.06486,-80.98661,"OH","775"],[40.87607,-80.59217,"OH","774"],[39.4722,-81.43887,"OH","773"],[41.22978,-80.72351,"OH","764"],[40.74197,-84.58099,"OH","738"],[40.7829,-84.05184,"OH","736"],[41.94312,-80.50118,"PA","713"],[39.81221,-77.704,"PA","712"],[39.8241,-83.99988,"OH","711"],[40.7263,-80.10218,"PA","710"],[41.0117,-76.27335,"PA","709"],[39.7443,-80.06568,"PA","706"],[40.23924,-76.04214,"PA","703"],[39.08181,-82.63786,"OH","703"],[40.36093,-76.70874,"PA","701"],[40.63183,-79.24604,"PA","700"],[39.93343,-75.11147,"NJ","676"],[40.74042,-73.81961,"NY","580"],[63.32646,-142.85622,"AK","574"],[64.95235,-147.62206,"AK","572"],[39.81381,-75.10614,"NJ","552"],[39.54928,-75.05844,"NJ","551"],[40.43988,-78.41234,"PA","506"],[40.49378,-77.09533,"PA","505"],[41.41679,-84.08658,"OH","504"],[41.19775,-80.09963,"PA","502"],[61.6713,-149.0709,"AK","444"],[60.51131,-150.90788,"AK","443"],[42.59981,-71.3627,"MA","414"],[21.38038,-157.90385,"HI","411"],[41.97258,-77.24056,"PA","410"],[32.29008,-83.44045,"GA","385"],[34.25742,-85.42741,"GA","384"],[32.15417,-81.35647,"GA","383"],[32.13552,-81.17181,"GA","380"],[40.41134,-96.70806,"NE","356"],[40.82071,-98.24734,"NE","355"],[41.11247,-102.9357,"NE","354"],[42.44727,-96.38549,"NE","353"],[40.37311,-99.46537,"NE","352"],[30.73387,-84.45188,"GA","342"],[32.1438,-81.17083,"GA","341"],[41.43374,-78.71452,"PA","324"],[43.2347,-113.99019,"ID","324"],[39.65536,-74.95649,"NJ","322"],[47.55492,-116.37411,"ID","320"],[48.45578,-116.4758,"ID","319"],[47.32348,-116.5555,"ID","318"],[40.35538,-78.43388,"PA","317"],[42.20003,-97.42607,"NE","311"],[40.30692,-99.7864,"NE","310"],[41.45112,-96.41662,"NE","309"],[42.42369,-97.11994,"NE","308"],[40.6693,-99.0311,"NE","307"],[40.82199,-98.0385,"NE","306"],[61.28052,-149.62313,"AK","306"],[39.9561,-74.9227,"NJ","295"],[32.09959,-81.22126,"GA","293"],[41.03343,-74.1946,"NJ","287"],[39.79017,-75.49232,"DE","287"],[40.995,-92.2114,"IA","277"],[43.3925,-92.2981,"IA","276"],[42.4394,-90.9414,"IA","275"],[41.4344,-92.995,"IA","274"],[41.0006,-93.125,"IA","273"],[41.3269,-94.9844,"IA","272"],[61.22798,-149.89068,"AK","271"],[42.6944,-95.1514,"IA","270"],[61.14937,-149.90783,"AK","270"],[40.7346,-92.5196,"IA","266"],[42.1782,-90.6723,"IA","265"],[40.4716,-91.5675,"IA","264"],[42.8231,-91.1789,"IA","263"],[40.7155,-92.5047,"IA","262"],[42.5753,-94.2275,"IA","261"],[43.1052,-93.2802,"IA","256"],[42.4481,-93.2398,"IA","255"],[43.0068,-92.6209,"IA","253"],[41.6264,-93.49732,"IA","250"],[41.57648,-91.5453,"IA","249"],[41.785,-92.2792,"IA","248"],[41.74895,-90.56879,"IA","242"],[47.76859,-116.97229,"ID","241"],[42.3717,-94.955,"IA","236"],[40.88706,-98.34579,"NE","227"],[40.75109,-96.63447,"NE","226"],[32.22384,-81.19492,"GA","226"],[40.82673,-96.60589,"NE","225"],[40.82701,-96.71205,"NE","223"],[41.0116,-74.2026,"NJ","208"],[39.9504,-74.74428,"NJ","206"],[41.0803,-91.5444,"IA","205"],[45.42861,-105.40503,"MT","204"],[45.68601,-108.69758,"MT","203"],[34.8221,-85.5393,"GA","203"],[40.40979,-74.90199,"NJ","202"],[40.18019,-74.55372,"NJ","195"],[42.20882,-114.60001,"ID","192"],[46.52054,-114.69809,"ID","185"],[32.87104,-79.91722,"SC","183"],[33.12899,-80.26893,"SC","182"],[34.71002,-80.99516,"SC","181"],[34.9928,-81.99707,"SC","180"],[34.69699,-82.77228,"SC","179"],[42.7941,-112.84698,"ID","179"],[34.68341,-82.8584,"SC","178"],[41.25167,-111.00538,"WY","177"],[33.513,-81.93163,"SC","177"],[34.77977,-82.27702,"SC","176"],[34.31759,-82.66181,"SC","175"],[34.47323,-80.27751,"SC","174"],[33.56157,-81.11663,"SC","173"],[40.65664,-75.09733,"NJ","173"],[41.55548,-109.92358,"WY","172"],[34.1796,-79.69552,"SC","172"],[32.43252,-82.59004,"GA","172"],[34.21563,-79.68403,"SC","171"],[42.94564,-115.41494,"ID","171"],[34.31759,-82.66181,"SC","170"],[33.94493,-81.10635,"SC","169"],[43.90605,-116.9429,"ID","169"],[33.83183,-78.71626,"SC","168"],[33.43112,-79.54558,"SC","167"],[42.57592,-114.21033,"ID","166"],[41.26567,-104.8425,"WY","160"],[40.95507,-77.75894,"PA","158"],[44.163,-105.44475,"WY","156"],[43.79637,-112.88676,"ID","156"],[31.8879,-82.60414,"GA","156"],[39.97279,-83.27759,"OH","155"],[31.92336,-83.78707,"GA","154"],[46.97082,-112.56821,"MT","149"],[47.69852,-104.44221,"MT","148"],[48.44306,-115.82037,"MT","147"],[47.41092,-115.51583,"MT","146"],[47.3337,-104.48112,"MT","145"],[46.046,-108.467,"MT","144"],[45.16001,-111.67843,"MT","143"],[44.63571,-112.59771,"MT","142"],[45.64919,-111.39198,"MT","141"],[40.73308,-74.05436,"NJ","139"],[40.17206,-74.05731,"NJ","138"],[48.9388,-104.57462,"MT","138"],[43.49482,-116.86103,"ID","138"],[47.29997,-115.12748,"MT","137"],[48.91412,-111.91968,"MT","136"],[48.95758,-107.81843,"MT","135"],[44.63056,-116.44398,"ID","135"],[48.94313,-110.2151,"MT","134"],[42.44404,-111.34895,"ID","134"],[47.83568,-114.33618,"MT","133"],[42.59226,-114.69066,"ID","133"],[46.98829,-104.16816,"MT","131"],[34.21871,-84.75224,"GA","131"],[39.72274,-75.46632,"NJ","130"],[45.99335,-112.55714,"MT","129"],[30.6267,-83.1729,"GA","129"],[46.13049,-111.97141,"MT","128"],[34.47681,-83.05071,"GA","128"],[30.7526,-81.65095,"GA","127"],[47.34153,-110.88527,"MT","126"],[40.59249,-95.66845,"IA","126"],[47.04879,-111.99747,"MT","125"],[45.872,-111.97048,"MT","124"],[45.82456,-108.38728,"MT","123"],[41.6797,-93.4067,"IA","123"],[34.9849,-85.20146,"GA","122"],[46.79778,-113.76383,"MT","121"],[42.5919,-93.5256,"IA","121"],[42.01093,-97.36303,"NE","120"],[45.59897,-109.11648,"MT","120"],[41.45858,-97.38794,"NE","119"],[47.36221,-114.78972,"MT","118"],[40.47713,-97.08399,"NE","117"],[40.62256,-96.98074,"NE","116"],[47.80508,-110.8733,"MT","115"],[41.30041,-98.5793,"NE","114"],[47.15835,-110.24933,"MT","114"],[40.8885,-96.97769,"NE","113"],[42.26004,-91.90999,"IA","113"],[35.47461,-108.92328,"NM","111"],[46.40106,-105.64098,"MT","111"],[46.10892,-108.87903,"MT","110"],[40.57403,-75.93252,"PA","106"],[40.7472,-93.8402,"IA","106"],[45.86128,-111.3582,"MT","104"],[42.35373,-93.57019,"IA","104"],[41.22178,-103.46336,"NE","103"],[46.917,-104.98228,"MT","103"],[61.18077,-149.75312,"AK","103"],[36.07175,-107.03883,"NM","102"],[45.00901,-106.87991,"MT","102"],[41.03619,-102.1342,"NE","101"],[37.19759,-85.8221,"KY","050P79"],[37.56301,-86.30497,"KY","043P78"],[37.65691,-82.79065,"KY","036P56"],[38.23729,-84.21886,"KY","009P26"],[21.38882,-157.9415,"HI","000C7L"],[21.34431,-157.89263,"HI","000C4K"],[40.27296,-74.83285,"NJ","95"],[41.1424,-74.5994,"NJ","94"],[39.1588,-81.5451,"WV","93"],[42.64184,-113.0386,"ID","93"],[33.79916,-78.77957,"SC","84"],[42.38713,-112.20367,"ID","79"],[39.72776,-74.90462,"NJ","73"],[44.51038,-108.11167,"WY","72"],[38.80775,-79.88327,"WV","72"],[39.88255,-74.56279,"NJ","72"],[38.15785,-82.17655,"WV","70"],[40.3592,-80.6125,"WV","69"],[37.764,-81.918,"WV","68"],[40.05814,-74.65065,"NJ","68"],[39.41,-77.926,"WV","66"],[38.9485,-79.8765,"WV","65"],[37.77065,-80.32551,"WV","62"],[43.85797,-91.29928,"MN","61"],[41.01222,-104.90437,"WY","59"],[43.85785,-91.2992,"MN","59"],[40.3983,-80.5377,"WV","58"],[40.1498,-80.6992,"WV","57"],[39.0544,-78.7804,"WV","55"],[39.3375,-78.9133,"WV","54"],[39.5887,-79.939,"WV","53"],[39.4534,-78.3101,"WV","52"],[38.3418,-80.6849,"WV","51"],[39.4251,-78.0025,"WV","50"],[43.639,-95.61575,"MN","49"],[44.07215,-95.32085,"MN","48"],[37.3118,-81.0622,"WV","47"],[45.03578,-92.81089,"MN","47"],[39.63578,-80.85477,"WV","45"],[45.1968,-93.17673,"MN","45"],[38.1477,-81.6519,"WV","44"],[37.8399,-82.0063,"WV","43"],[34.33083,-81.00443,"SC","43"],[38.3317,-81.5836,"WV","42"],[44.77368,-92.86288,"MN","42"],[30.91478,-84.598,"GA","41"],[38.3591,-81.5916,"WV","40"],[39.56391,-75.02871,"NJ","40"],[44.89203,-93.0665,"MN","40"],[38.4554,-81.9811,"WV","39"],[44.06178,-91.63755,"MN","39"],[38.2902,-81.5686,"WV","38"],[46.76157,-92.1152,"MN","38"],[39.3299,-78.0118,"WV","37"],[42.16674,-72.61072,"MA","37"],[42.12701,-70.80046,"MA","36"],[47.53007,-95.33002,"MN","35"],[38.3883,-81.7982,"WV","34"],[40.1228,-74.08008,"NJ","34"],[44.92818,-95.42306,"MN","34"],[38.8192,-81.6205,"WV","33"],[40.25323,-74.35113,"NJ","33"],[44.77466,-94.96049,"MN","33"],[39.2852,-80.3899,"WV","32"],[44.15416,-92.53333,"MN","32"],[39.9062,-80.7558,"WV","31"],[47.88025,-96.91735,"MN","31"],[37.9427,-82.0191,"WV","30"],[44.5218,-70.4282,"ME","30"],[40.0441,-80.6228,"WV","29"],[46.6829,-67.975,"ME","29"],[38.14312,-82.60349,"WV","28"],[44.79366,-70.22386,"ME","28"],[42.05988,-107.38851,"WY","27"],[43.9647,-94.692,"MN","27"],[46.89059,-68.51479,"ME","27"],[38.3984,-82.4969,"WV","26"],[43.91968,-93.27691,"MN","26"],[44.9394,-69.84387,"ME","26"],[44.23382,-70.25562,"ME","25"],[40.0709,-80.6003,"WV","24"],[44.03466,-70.89116,"ME","24"],[45.14278,-67.29557,"ME","23"],[38.73828,-80.6561,"WV","22"],[40.61866,-74.75093,"NJ","22"],[44.5186,-69.7004,"ME","22"],[38.9263,-79.17617,"WV","20"],[44.7641,-68.9495,"ME","19"],[38.6568,-80.0048,"WV","18"],[40.32421,-74.26923,"NJ","18"],[45.483,-68.3781,"ME","18"],[32.2002,-81.18769,"GA","18"],[41.09031,-74.15384,"NJ","17"],[47.45764,-99.33795,"ND","17"],[32.87801,-84.96221,"GA","17"],[48.052,-103.66,"ND","16"],[32.51377,-83.06925,"GA","16"],[40.97302,-74.60134,"NJ","15"],[44.5391,-68.3274,"ME","15"],[39.0097,-80.3994,"WV","14"],[46.83888,-100.65694,"ND","14"],[38.3755,-82.4545,"WV","13"],[48.76094,-98.14391,"ND","13"],[33.19117,-84.85046,"GA","13"],[37.34236,-80.99398,"WV","12"],[38.14529,-81.8453,"WV","11"],[37.90775,-80.63452,"WV","10"],[48.15778,-98.95963,"ND","10"],[43.60194,-72.74215,"VT","00Y117"],[43.64838,-72.34664,"VT","00Y085"],[43.19635,-72.5031,"VT","00X249"],[42.78752,-72.56047,"VT","00X071"],[32.09797,-81.09193,"GA","00W386"],[32.7816,-83.6778,"GA","00W284"],[21.45016,-157.99026,"HI","00H13P"],[44.99093,-73.31374,"VT","00G118"],[44.6466,-73.2931,"VT","00G005"],[44.30499,-73.24433,"VT","00D132"],[44.5551,-73.18424,"VT","00D092"],[21.36879,-158.0574,"HI","00C10K"],[42.90596,-73.24518,"VT","00B379"],[44.106,-73.2955,"VT","00A111"],[44.11901,-73.1788,"VT","00A041"],[47.22516,-100.9338,"ND","9"],[38.3426,-80.8359,"WV","8"],[48.95281,-102.5459,"ND","8"],[33.61184,-83.76171,"GA","8"],[38.48088,-81.46367,"WV","6"],[48.86782,-97.23011,"ND","6"],[43.7735,-70.1999,"ME","6"],[39.008,-80.497,"WV","5"],[43.28945,-70.98833,"NH","5"],[48.13986,-103.7572,"ND","5"],[39.3545,-80.2173,"WV","4"],[43.1403,-71.2852,"NH","4"],[46.081,-96.835,"ND","4"],[21.33,-158.08985,"HI","4"],[42.90723,-70.87653,"NH","3"],[45.96485,-98.52734,"ND","3"],[43.00681,-71.43344,"NH","2"],[46.117,-103.411,"ND","2"],[19.82776,-155.94586,"HI","2"],[37.8008,-80.8366,"WV","1"],[43.00681,-71.43344,"NH","1"],[46.88931,-103.3492,"ND","1"],[43.0977,-70.7578,"ME","1"],[32.51056,-98.38868,"TX","0WT555"],[30.46389,-96.1524,"TX","0WT554"],[32.90682,-94.36291,"TX","0WT553"],[32.3426,-97.19303,"TX","0WT550"],[31.64507,-97.00728,"TX","0WT548"],[33.46198,-96.28461,"TX","0WT546"],[33.85776,-101.85378,"TX","0WT545"],[33.1818,-102.39057,"TX","0WT543"],[33.22604,-94.09907,"TX","0WT541"],[27.83781,-97.63347,"TX","0WT534"],[33.80647,-98.72181,"TX","0WT530"],[33.03688,-97.43238,"TX","0WT527"],[30.24833,-99.44868,"TX","0WT518"],[33.95266,-98.58218,"TX","0WT506"],[29.54257,-98.06595,"TX","0WT502"],[32.09741,-81.09268,"GA","0WR388"],[32.09719,-81.09203,"GA","0WR387"],[45.42861,-105.40503,"MT","0W-204"]],"id":[[47.70835,-116.86718,"Huetter","I-90 EB,  milepost 8.5","Main","High-Speed Weigh in Motion - Electronic Screening"],[48.73241,-116.29645,"Bonners Ferry","US-95,  milepost 510.6","Manned Satellite","Static Scales"],[46.46168,-117.01623,"Lewiston Hill","US-95, 7 miles north of Lewiston, SB side","Manned Satellite","Static Scales"],[46.43376,-116.94941,"Lewiston Port","US-95/US-12, 1 mile east of Lewiston","Main","High-Speed Weigh in Motion - Electronic Screening"],[43.43117,-116.05808,"East Boise (EB)","I-84, milepost 67, 11 miles east of Boise","Main","High-Speed Weigh in Motion - Electronic Screening"],[43.43206,-116.05694,"East Boise (WB)","I-84, milepost 67, 11 miles east of Boise","Main","High-Speed Weigh in Motion - Electronic Screening"],[43.46461,-116.86543,"Marsing","SH-55, 6 miles south of SH-55/US-95 junction","Manned Satellite","Static Scales"],[43.92723,-116.19087,"Horseshoe Bend","SH-55, 1 mile north of Horseshoe Bend","Manned Satellite","Static Scales"],[42.56814,-113.57904,"Declo (EB)","I-84, milepost 218.7","Main","High-Speed Weigh in Motion - Electronic Screening"],[42.56928,-113.57864,"Declo (WB)","I-84, milepost 218.7","Main","High-Speed Weigh in Motion - Electronic Screening"],[42.34104,-114.57445,"Hollister","US-93, 21 miles south of Twin Falls","Manned Satellite","Static Scales"],[42.80087,-112.29028,"Inkom (NB)","I-15, 8 miles south of Pocatello","Main","High-Speed Weigh in Motion - Electronic Screening"],[42.79966,-112.29001,"Inkom (SB)","I-15, 8 miles south of Pocatello","Main","High-Speed Weigh in Motion - Electronic Screening"],[43.83265,-112.20076,"Sage Junction","I-15 (exit 143), 8 miles north of Roberts","Main","High-Speed Weigh in Motion - Electronic Screening"],[47.31006,-116.54644,"St. Maries","SH-3, milepost 83.6, NB side","Unmanned Satellite (manned on a temporary basis)","Static Scales"],[44.01833,-111.51581,"Ashton","US-20, milepost 356, SB side","Unmanned Satellite (manned on a temporary basis)","Static Scales"],[43.60756,-113.17191,"Arco","US-20, milepost 256, WB side","Unmanned Satellite (manned on a temporary basis)","Static Scales"],[48.19044,-116.91483,"Priest River","SH-57, milepost .675, SB side","Unmanned Satellite (manned on a temporary basis)","Static Scales"]],"cbp":[[32.71814,-114.72832,"Andrade","Open","Mexican Border"],[25.892,-97.5047,"B&M Bridge \u2014 B&M Bridge","Open","Mexican Border"],[31.74771,-106.48694,"BOTA CARGO FACILITY \u2014 BRIDGE OF AMERICAS CARGO FACILITY ","Closed","Mexican Border"],[31.74771,-106.48694,"Bridge of the Americas Port of Entry","Open","Mexican Border"],[25.892,-97.5047,"Brownsville \u2014 B&M","Open","Mexican Border"],[25.892,-97.5047,"Brownsville \u2014 Gateway","Open","Mexican Border"],[25.892,-97.5047,"Brownsville \u2014 Los Indios","Open","Mexican Border"],[25.892,-97.5047,"Brownsville \u2014 Veterans International","Open","Mexican Border"],[32.66488,-115.49614,"Calexico \u2014 East","Open","Mexican Border"],[32.66488,-115.49614,"Calexico \u2014 West","Open","Mexican Border"],[31.33336,-108.53021,"Columbus","Open","Mexican Border"],[29.32678,-100.92761,"Del Rio","Open","Mexican Border"],[31.33404,-109.56034,"Douglas (Raul Hector Castro)","Open","Mexican Border"],[28.69774,-100.51053,"Eagle Pass \u2014 Bridge I","Open","Mexican Border"],[28.69774,-100.51053,"Eagle Pass \u2014 Bridge II","Open","Mexican Border"],[31.74771,-106.48694,"El Paso","Open","Mexican Border"],[31.74771,-106.48694,"El Paso \u2014 Bridge of the Americas (BOTA)","Open","Mexican Border"],[31.74771,-106.48694,"El Paso \u2014 Paso Del Norte (PDN)","Open","Mexican Border"],[31.74771,-106.48694,"El Paso \u2014 Stanton DCL","Open","Mexican Border"],[31.74771,-106.48694,"El Paso \u2014 Ysleta","Open","Mexican Border"],[31.27315,-105.85454,"Fort Hancock \u2014 Fort Hancock","Open","Mexican Border"],[25.892,-97.5047,"Gateway","Open","Mexican Border"],[26.06651,-98.076,"Hidalgo/Pharr \u2014 Anzalduas International Bridge","Open","Mexican Border"],[26.06651,-98.076,"Hidalgo/Pharr \u2014 Hidalgo","Open","Mexican Border"],[26.06651,-98.076,"Hidalgo/Pharr \u2014 Pharr","Open","Mexican Border"],[27.50038,-99.50261,"Laredo \u2014 Bridge I","Open","Mexican Border"],[27.50038,-99.50261,"Laredo \u2014 Bridge II","Open","Mexican Border"],[27.50038,-99.50261,"Laredo \u2014 Colombia Solidarity","Open","Mexican Border"],[27.50038,-99.50261,"Laredo \u2014 World Trade Bridge","Open","Mexican Border"],[31.8802,-112.81708,"Lukeville","Open","Mexican Border"],[31.27315,-105.85454,"Marcelino Serna \u2014 Tornillo","Open","Mexican Border"],[31.33408,-109.94841,"Naco","Open","Mexican Border"],[31.33408,-109.94841,"Naco","Open","Mexican Border"],[31.33263,-110.96533,"Nogales \u2014 Deconcini","Open","Mexican Border"],[31.33263,-110.96533,"Nogales \u2014 Mariposa","Open","Mexican Border"],[31.33263,-110.96533,"Nogales \u2014 Morley Gate","Open","Mexican Border"],[32.55033,-116.93854,"Otay Mesa","Open","Mexican Border"],[32.55033,-116.93854,"Otay Mesa \u2014 Commercial","Open","Mexican Border"],[32.55033,-116.93854,"Otay Mesa \u2014 Passenger","Open","Mexican Border"],[32.55033,-116.93854,"Otay Mesa Port of Entry","Open","Mexican Border"],[29.56183,-104.39491,"Presidio \u2014 PRESIDIO PORT OF ENTRY","Open","Mexican Border"],[26.02913,-97.73883,"Progreso \u2014 Donna International Bridge","Open","Mexican Border"],[26.02913,-97.73883,"Progreso \u2014 Progreso International Bridge","Open","Mexican Border"],[26.36576,-98.80251,"Rio Grande City","Open","Mexican Border"],[26.55936,-99.16734,"Roma","Open","Mexican Border"],[26.55936,-99.16734,"ROMA TEXAS \u2014 ROMA TEXAS ","Open","Mexican Border"],[32.50516,-114.84786,"San Luis \u2014 San Luis I","Open","Mexican Border"],[32.50516,-114.84786,"San Luis \u2014 San Luis II","Closed","Mexican Border"],[32.54253,-117.02876,"San Ysidro","Open","Mexican Border"],[32.54253,-117.02876,"San Ysidro \u2014 Cross Border Express","Open","Mexican Border"],[32.54253,-117.02876,"San Ysidro \u2014 PedWest","Closed","Mexican Border"],[31.78394,-106.67944,"Santa Teresa \u2014 Santa Teresa Port of Entry","Open","Mexican Border"],[32.57643,-116.62622,"Tecate","Open","Mexican Border"]]};</script>
+<script>window.HAUL_SITES = {"AL":"https://www.algotraffic.com/","AK":"https://511.alaska.gov/","AZ":"https://www.az511.gov/","AR":"https://www.idrivearkansas.com/","CO":"https://www.cotrip.org/","CT":"https://ctroads.org/","DE":"https://www.deldot.gov/map/","FL":"https://fl511.com/","GA":"https://511ga.org/","HI":"https://hidot.hawaii.gov/highways/roadwork/","ID":"https://511.idaho.gov/","IL":"https://www.gettingaroundillinois.com/","IN":"https://511in.org/","IA":"https://www.511ia.org/","KS":"https://www.kandrive.gov/","KY":"https://goky.ky.gov/","LA":"https://www.511la.org/","ME":"https://newengland511.org/","MD":"https://chart.maryland.gov/","MA":"https://mass511.com/","MI":"https://mdotjboss.state.mi.us/MiDrive/map","MN":"https://511mn.org/","MS":"https://www.mdottraffic.com/","MO":"https://traveler.modot.org/","MT":"https://www.511mt.net/","NE":"https://511.nebraska.gov/","NV":"https://www.nvroads.com/","NH":"https://newengland511.org/","NJ":"https://www.511nj.org/","NM":"https://www.nmroads.com/","NY":"https://511ny.org/","NC":"https://drivenc.gov/","ND":"https://travel.dot.nd.gov/","OH":"https://ohgo.com/","OK":"https://www.oktraffic.org/","OR":"https://www.tripcheck.com/","PA":"https://www.511pa.com/","RI":"https://www.dot.ri.gov/travel/index.php","SC":"https://www.511sc.org/","SD":"https://www.sd511.org/","TN":"https://smartway.tn.gov/","TX":"https://drivetexas.org/","UT":"https://www.udottraffic.utah.gov/","VT":"https://newengland511.org/","VA":"https://511.vdot.virginia.gov/","WA":"https://wsdot.com/travel/real-time/map","WV":"https://wv511.org/","WI":"https://511wi.gov/","WY":"https://www.wyoroad.info/"};</script>
+<script>
+/*OCR-START*/
+// Turns recognized words (with positions) from a screenshot into loads and fuel prices.
+// Knows eight layouts: Truckstop board, Truckstop load page, Bennett available-loads table, Bennett (BME) load page, Bennett/EFS fuel price list, Trinity / Evans / Landstar rate confirmations.
+var OCR_STATES = ' AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC ';
+var OCR_EQUIP = { F: 'Flatbed (F)', FD: 'Flatbed (FD)', SD: 'Step deck (SD)', SDRG: 'Step deck or RGN (SDRG)', FSD: 'Flat or step deck (FSD)', SDL: 'Step deck with loading ramps (SDL)', DD: 'Double drop (DD)', RGN: 'Removable gooseneck lowboy (RGN)', LB: 'Lowboy (LB)', V: 'Van (V)', R: 'Reefer (R)', VR: 'Van or reefer (VR)', FV: 'Flatbed or van (FV)', FSDV: 'Flat, step deck or van (FSDV)', HS: 'Hotshot (HS)', PO: 'Power only (PO)', CONG: 'Conestoga (CONG)' };
+function ocrIsState(t) { return OCR_STATES.indexOf(' ' + String(t || '').toUpperCase() + ' ') >= 0 && String(t).length === 2; }
+function ocrWords(tsv) {
+  var out = [];
+  String(tsv || '').split('\n').forEach(function (line) {
+    var c = line.split('\t');
+    if (c.length < 12 || c[0] !== '5') return;
+    var t = c.slice(11).join(' ').trim();
+    if (!t || parseFloat(c[10]) < 0) return;
+    out.push({ x: +c[6], y: +c[7], w: +c[8], h: +c[9], t: t });
+  });
+  return out;
+}
+function ocrLines(words) {
+  if (!words.length) return [];
+  var hs = words.map(function (w) { return w.h; }).sort(function (a, b) { return a - b; });
+  var tol = Math.max(6, hs[Math.floor(hs.length / 2)] * 0.6);
+  var ws = words.slice().sort(function (a, b) { return (a.y + a.h / 2) - (b.y + b.h / 2); });
+  var out = [], cur = null;
+  ws.forEach(function (w) {
+    var cy = w.y + w.h / 2;
+    if (!cur || Math.abs(cy - cur.cy) > tol) { cur = { cy: cy, words: [] }; out.push(cur); }
+    cur.words.push(w); cur.cy += (cy - cur.cy) / cur.words.length;  // running mean, so tall or low words stay on their row
+  });
+  out.forEach(function (l) {
+    l.words.sort(function (a, b) { return a.x - b.x; });
+    l.text = l.words.map(function (w) { return w.t; }).join(' ');
+  });
+  return out;
+}
+function ocrNum(raw) {  // "1,824" -> "1824"; "" when the text is not a clean number
+  var t = String(raw || '').trim().replace(/^[^\d$]+/, '').replace(/[|\]\)]+$/, '').replace(/^\$/, '');
+  return /^\d{1,3}(,\d{3})*(\.\d+)?$|^\d+(\.\d+)?$/.test(t) ? t.replace(/,/g, '') : '';
+}
+function ocrBlankLoad() { return { ref: '', origin: '', destination: '', pickup: '', delivery: '', pickupAt: '', deliverBy: '', equipment: '', weight: '', length: '', width: '', height: '', pieces: '', commodity: '', tarp: '', permits: '', linehaul: '', fsc: '', miles: '', deadhead: '', tolls: '', tarpFee: '', permitCost: '', other: '', diesel: '', dieselNote: '', route: '', hazards: [], stops: [], unreadable: [], notes: '' }; }
+function ocrCity(raw, label, load) {
+  var t = String(raw || '').replace(/^[^A-Za-z]+/, '').replace(/[^A-Za-z.…]+$/, '').trim();
+  if (/\.{2,}|…/.test(t)) { t = t.replace(/[.…]+\s*$/, '').trim(); load.unreadable.push(label + ' is cut off on the screen ("' + t + '...")'); }
+  return t.replace(/\s+/g, ' ');
+}
+
+function ocrBetterPlace(a, b) {
+  a = String(a || '').trim(); b = String(b || '').trim();
+  if (!a) return b; if (!b) return a;
+  var ac = a.split(',')[0].trim().toLowerCase(), bc = b.split(',')[0].trim().toLowerCase();
+  if (ac === bc) return a.length >= b.length ? a : b;
+  if (ac.indexOf(bc) === 0 && a.length > b.length) return a;
+  if (bc.indexOf(ac) === 0 && b.length > a.length) return b;
+  return a.length >= b.length ? a : b;
+}
+function ocrPlacesFromRowText(rowText) {
+  var places = [], m, re = /([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\b/g;
+  while ((m = re.exec(String(rowText || '')))) {
+    if (ocrIsState(m[2])) places.push(m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2]);
+  }
+  if (places.length < 2) {
+    places = [];
+    re = /([A-Za-z][A-Za-z .'\-]{1,40}?)\s+([A-Z]{2})(?=\s|$)/g;
+    while ((m = re.exec(String(rowText || '')))) {
+      if (ocrIsState(m[2]) && !/^\d/.test(m[1]) && m[1].trim().length > 1) places.push(m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2]);
+    }
+  }
+  return places;
+}
+function ocrClearFilledWarnings(L) {
+  if (!L || !L.unreadable) return L;
+  var drop = [];
+  if (String(L.linehaul || '').trim()) drop.push(/^Posted rate could not be read/i, /^Linehaul could not be read/i, /^Rate reads as/i, /^Rate is blank/i);
+  if (String(L.origin || '').trim()) drop.push(/^Origin could not be read/i);
+  if (String(L.destination || '').trim()) drop.push(/^Destination could not be read/i);
+  if (drop.length) L.unreadable = L.unreadable.filter(function (u) { return !drop.some(function (re) { return re.test(u); }); });
+  return L;
+}
+function ocrTitle(s) { return String(s || '').toLowerCase().replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }); }
+// Bennett screens write feet.inches: 8.06 = 8 ft 6 in
+function ocrBennettDim(raw, label, load) {
+  var m = String(raw || '').match(/^(\d+)\.(\d\d)$/);
+  if (!m) { if (String(raw || '').trim()) load.unreadable.push(label + ' reads as "' + raw + '"'); return ''; }
+  var ft = +m[1], inch = +m[2];
+  if (inch >= 12) { load.unreadable.push(label + ' "' + raw + '" does not look like feet.inches'); return raw + ' ft'; }
+  return inch ? ft + ' ft ' + inch + ' in' : ft + ' ft';
+}
+
+/* ---- Truckstop load board ---- */
+function ocrParseBoard(lines) {
+  var rowRe = /\$[\d,]{3,}\s+\$\d+\.\d\d\s+\S+\s+\d{1,2}\/\d{1,2}\b/;
+  var rows = lines.filter(function (l) { return rowRe.test(l.text); });
+  if (!rows.length) return [];
+  var header = null;
+  lines.forEach(function (l) { if (/\bRPM\b/.test(l.text) && /Equip/i.test(l.text) && /Pickup/i.test(l.text)) header = l; });
+  var defs = [['updated', /^Updated/i], ['actions', /^Actions/i], ['rate', /^Rate/i], ['rpm', /^RPM/i], ['equip', /^Equip/i], ['pickup', /^Pickup/i], ['ocity', /^O-?City/i], ['ost', /^O-?St/i], ['odh', /^O-?DH/i], ['dcity', /^D-?City/i], ['dst', /^D-?St/i], ['company', /^Company/i], ['ddh', /^D-?DH/i], ['miles', /^Dista/i], ['weight', /^Weight/i], ['length', /^Len/i], ['width', /^Width/i], ['height', /^Height/i]];
+  var cols = [];
+  if (header) header.words.forEach(function (w) { defs.forEach(function (d) { if (d[1].test(w.t) && !cols.some(function (c) { return c.k === d[0]; })) cols.push({ k: d[0], x: w.x }); }); });
+  cols.sort(function (a, b) { return a.x - b.x; });
+  var useCols = cols.length >= 8;
+  return rows.map(function (row) {
+    var L = ocrBlankLoad(), f = {}, tol = row.words[0].h * 0.8;
+    if (useCols) {
+      row.words.forEach(function (w) {
+        var k = null; cols.forEach(function (c) { if (c.x <= w.x + tol) k = c.k; });
+        if (k) f[k] = (f[k] ? f[k] + ' ' : '') + w.t;
+      });
+    } else {  // no header in the screenshot: read the row left to right
+      var t = row.words.map(function (w) { return w.t; }), i = 0, tail = [];
+      while (i < t.length && !/^\W*\$/.test(t[i])) i++;
+      f.rate = t[i++]; f.rpm = t[i++]; f.equip = t[i++]; f.pickup = t[i++];
+      var oc = []; while (i < t.length && !(oc.length && ocrIsState(t[i]) && /^\d+$/.test(t[i + 1] || ''))) oc.push(t[i++]);
+      f.ocity = oc.join(' '); f.ost = t[i++]; f.odh = t[i++];
+      var dc = []; while (i < t.length && !(dc.length && ocrIsState(t[i]))) dc.push(t[i++]);
+      f.dcity = dc.join(' '); f.dst = t[i++];
+      var rest = t.slice(i); while (rest.length && ocrNum(rest[rest.length - 1])) tail.unshift(rest.pop());
+      f.company = rest.join(' ');
+      ['miles', 'weight', 'length', 'width', 'height'].forEach(function (k, n) { f[k] = tail[n] || ''; });
+      L.unreadable.push('No column headings in the screenshot: sizes were matched by position in the row. Check them');
+    }
+    function numField(k, label) {
+      var raw = (f[k] || '').split(/\s+/).filter(function (t) { return /[A-Za-z0-9]/.test(t); }).join(' '); if (!raw) return '';
+      var n = ocrNum(raw); if (!n) L.unreadable.push(label + ' reads as "' + raw + '": could not make it out');
+      return n;
+    }
+    L.linehaul = numField('rate', 'Rate');
+    var eq = String(f.equip || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+    L.equipment = OCR_EQUIP[eq] || (eq ? eq + ' (board code)' : '');
+    L.pickup = (String(f.pickup || '').match(/\d{1,2}\/\d{1,2}(\/\d{2,4})?/) || [''])[0];
+    var oc2 = ocrCity(f.ocity, 'Origin', L), dc2 = ocrCity(f.dcity, 'Destination', L);
+    var os = String(f.ost || '').replace(/[^A-Za-z]/g, '').toUpperCase(), ds = String(f.dst || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+    if (!ocrIsState(os)) { L.unreadable.push('Origin state reads as "' + (f.ost || '') + '"' + (ocrIsState(os.slice(0, 2)) ? ', used ' + os.slice(0, 2) : '')); if (ocrIsState(os.slice(0, 2))) os = os.slice(0, 2); }
+    if (!ocrIsState(ds)) { L.unreadable.push('Destination state reads as "' + (f.dst || '') + '"' + (ocrIsState(ds.slice(0, 2)) ? ', used ' + ds.slice(0, 2) : '')); if (ocrIsState(ds.slice(0, 2))) ds = ds.slice(0, 2); }
+    L.origin = oc2 + (os ? ', ' + os : ''); L.destination = dc2 + (ds ? ', ' + ds : '');
+    var rowPlaces = ocrPlacesFromRowText(row.text);
+    if (rowPlaces[0]) L.origin = ocrBetterPlace(L.origin, rowPlaces[0]);
+    if (rowPlaces[1]) L.destination = ocrBetterPlace(L.destination, rowPlaces[1]);
+    L.deadhead = numField('odh', 'Deadhead (O-DH)');
+    L.miles = numField('miles', 'Distance'); L.weight = numField('weight', 'Weight');
+    ['length', 'width', 'height'].forEach(function (k) {
+      var label = k.charAt(0).toUpperCase() + k.slice(1), n = numField(k, label);
+      if (n && +n > (k === 'length' ? 80 : 16)) { L[k] = n + ' in'; L.unreadable.push(label + ' shows ' + n + ' on the board. That is too big for feet, so it is read as inches: check it'); }
+      else L[k] = n ? n + ' ft' : '';
+    });
+    var co = String(f.company || '').trim().split(/\s+/);
+    if (co.length > 1 && co[0].length === 1) co.shift();
+    var company = co.join(' ').replace(/^[^A-Za-z0-9]+/, '');
+    if (/\.{2,}|…/.test(company)) L.unreadable.push('Broker name is cut off ("' + company.replace(/[.…]+$/, '') + '...")');
+    L.ref = 'Truckstop' + (company ? ', ' + company : '');
+    ['width', 'height', 'length'].forEach(function (k) { if (useCols && cols.some(function (c) { return c.k === k; }) && !L[k] && !(f[k] || '').trim()) L.unreadable.push(k.charAt(0).toUpperCase() + k.slice(1) + ' is blank on the board'); });
+    if (useCols) ['length', 'width', 'height'].forEach(function (k) { if (!cols.some(function (c) { return c.k === k; })) L.unreadable.push(k.charAt(0).toUpperCase() + k.slice(1) + ' column is not in the screenshot'); });
+    L.unreadable.push('Delivery date is not on the board');
+    if (L.deadhead) L.notes = 'Deadhead is the O-DH miles from the board.';
+    L._cy = row.cy;
+    return L;
+  });
+}
+
+/* ---- Bennett available-loads table ---- */
+function ocrParseBennett(lines) {
+  var dateRe = /^\d{2}\/\d{2}\/\d{2}$/;
+  var anchors = lines.filter(function (l) {
+    var d = l.words.filter(function (w) { return dateRe.test(w.t); });
+    return d.length === 2 && l.words.filter(function (w) { return w.x > d[1].x && /^[\d.,]+$/.test(w.t); }).length >= 4;
+  });
+  if (!anchors.length) return [];
+  var allWords = []; lines.forEach(function (l) { l.words.forEach(function (w) { allWords.push(w); }); });
+  return anchors.map(function (a, i) {
+    var L = ocrBlankLoad(), prev = anchors[i - 1], next = anchors[i + 1];
+    var gap = next ? next.cy - a.cy : prev ? a.cy - prev.cy : a.words[0].h * 5;
+    var top = prev ? (prev.cy + a.cy) / 2 : a.cy - gap / 2, bot = next ? (next.cy + a.cy) / 2 : a.cy + gap / 2;
+    var band = allWords.filter(function (w) { var cy = w.y + w.h / 2; return cy > top && cy < bot; }).sort(function (p, q) { var dy = (p.y + p.h / 2) - (q.y + q.h / 2); return Math.abs(dy) > p.h * 0.6 ? dy : p.x - q.x; });
+    var dates = a.words.filter(function (w) { return dateRe.test(w.t); });
+    var order = a.words.filter(function (w) { return /^\d{7}$/.test(w.t) && w.x < dates[0].x; })[0];
+    var head = band.filter(function (w) { return w.x < (order ? order.x : dates[0].x) && /^[A-Z]{2,3}$/.test(w.t); }).sort(function (p, q) { return p.x - q.x; });
+    var eq = head[0] ? head[0].t : '', term = head[1] ? head[1].t : '';
+    L.equipment = eq ? (OCR_EQUIP[eq] || eq + ' (Bennett code)') : '';
+    var nums = a.words.filter(function (w) { return w.x > dates[1].x && /^[\d.,]+$/.test(w.t); });
+    var keys = ['miles', 'weight', 'length', 'width', 'height', 'gross'], v = {};
+    keys.forEach(function (k, n) { v[k] = nums[n] ? nums[n].t : ''; });
+    if (nums.length !== 6) L.unreadable.push('Expected 6 numbers after the dates (miles, weight, length, width, height, gross) but read ' + nums.length + '. Check them all');
+    L.miles = ocrNum(v.miles); L.weight = ocrNum(v.weight);
+    L.length = ocrBennettDim(v.length, 'Length', L); L.width = ocrBennettDim(v.width, 'Width', L); L.height = ocrBennettDim(v.height, 'Height', L);
+    L.linehaul = '';
+    if (v.gross) L.notes = (L.notes ? L.notes + ' ' : '') + 'Est. B/R Gross on board: ' + v.gross + ' (not used as linehaul).';
+    var lastNum = nums[nums.length - 1];
+    var places = band.filter(function (w) { return w.x > (order ? order.x + order.w : 0) && w.x + w.w < dates[0].x && (/,/.test(w.t) || /^[A-Z][A-Z.'\-]{2,}$/.test(w.t)) && !/^\(?FR[TI]\)?$/.test(w.t); }).map(function (w) { return w.t; }).join(' ');
+    var m, re = /([A-Z][A-Z .'\-]*?)\s*[,.]\s*([A-Z]{2})\b/g, found = [];
+    while ((m = re.exec(places))) if (ocrIsState(m[2])) found.push(ocrTitle(m[1].trim()) + ', ' + m[2]);
+    L.origin = found[0] || ''; L.destination = found[1] || '';
+    if (found.length === 1) {  // one state was not read: keep the first place as the origin without a state
+      var cut = places.search(/[A-Z][A-Z .'\-]*?\s*[,.]\s*[A-Z]{2}\b(?![\s\S]*[,.]\s*[A-Z]{2}\b)/), lead = cut > 0 ? places.slice(0, cut).replace(/[^A-Za-z]+$/, '').trim() : '';
+      if (lead) { L.destination = found[0]; L.origin = ocrTitle(lead); }
+    }
+    if (found.length !== 2) L.unreadable.push('Origin and destination read as "' + places + '": check them');
+    L.commodity = lastNum ? ocrTitle(band.filter(function (w) { return w.x > lastNum.x + lastNum.w && /[A-Za-z]/.test(w.t); }).map(function (w) { return w.t; }).join(' ')) : '';
+    L.pickup = dates[0].t + ' (early pickup date)'; L.delivery = dates[1].t + ' (late delivery date)';
+    L.ref = 'Bennett order ' + (order ? order.t : '?') + (term ? ', terminal ' + term : '');
+    if (!order) L.unreadable.push('Order number could not be read');
+    L.unreadable.push('No posted rate on this Bennett table row — Est. B/R Gross is not linehaul');
+    L.unreadable.push('Tarp requirement and special instructions are not on this table');
+    L.notes = (L.notes ? L.notes + ' ' : '') + 'No deadhead shown on this table.';
+    L._cy = a.cy;
+    return L;
+  });
+}
+
+/* ---- Bennett (BME) single load page ---- */
+function ocrParseBME(lines) {
+  var text = lines.map(function (l) { return l.text; }).join('\n');
+  if (!/Load Number/i.test(text) || !/Trailer Type|Shipper Name/i.test(text)) return [];
+  var L = ocrBlankLoad();
+  function g(re, n) { var m = text.match(re); return m ? String(m[n || 1]).trim() : ''; }
+  function all(re) { var out = [], m; while ((m = re.exec(text))) out.push(m); return out; }
+  var cities = all(/City:\s*(.+?)\s+State:\s*([A-Za-z]{2})\b/g), zips = all(/Zip:\s*(\d{5})/g);
+  var shipper = g(/Shipper Name:\s*(.+?)\s+Address:/), shipAddr = g(/Shipper Name:.*?Address:\s*(.*)/), cons = g(/onsignee Name:\s*(.+?)\s+Address:/);
+  function placeOf(n, name, addr) { var c = cities[n]; if (!c) return ''; return ocrTitle(c[1]) + ', ' + c[2].toUpperCase() + (zips[n] ? ' ' + zips[n][1] : '') + (name ? ' (' + ocrTitle(name) + (addr ? ', ' + ocrTitle(addr) : '') + ')' : ''); }
+  L.origin = placeOf(0, shipper, shipAddr); L.destination = placeOf(1, cons, '');
+  if (cities.length < 2) L.unreadable.push('Could not read both the shipper and consignee city');
+  var loadNo = g(/Load Number:\s*(\d+)/), bol = g(/Customer BOL:\s*(\S+)/), term = g(/Terminal:\s*(\S+)/);
+  L.ref = 'Bennett load ' + (loadNo || '?') + (bol ? ', customer BOL ' + bol : '') + (term ? ', agent terminal ' + term.toUpperCase() : '');
+  var tt = g(/Trailer Type:\s*(\S+)/);
+  L.equipment = tt ? (tt.toUpperCase() === 'D' ? 'Drop deck (trailer type D)' : tt.toUpperCase() === 'F' ? 'Flatbed (trailer type F)' : 'Trailer type ' + tt) : '';
+  if (tt) L.unreadable.push('Trailer type shows only the code "' + tt + '": confirm what it means');
+  L.commodity = ocrTitle(g(/Commodity:\s*(.+)/));
+  L.pieces = g(/Pieces:\s*0*(\d+)/); L.weight = ocrNum(g(/Weight:\s*([\d,]+)/));
+  L.length = ocrBennettDim(g(/Length:\s*([\d.]+)/), 'Length', L); L.width = ocrBennettDim(g(/Width:\s*([\d.]+)/), 'Width', L); L.height = ocrBennettDim(g(/Height:\s*([\d.]+)/), 'Height', L);
+  var ld = g(/Load Date:\s*(\d\d\/\d\d\/\d\d)/), dd = g(/Delivery Date:\s*(\d\d\/\d\d\/\d\d)/), times = all(/(\d{4})\s*\(hhmm\)/g);
+  function iso(d, t) { return d && t ? '20' + d.slice(6) + '-' + d.slice(0, 2) + '-' + d.slice(3, 5) + 'T' + t.slice(0, 2) + ':' + t.slice(2) : ''; }
+  var lt = times[0] ? times[0][1] : '', dt = times[1] ? times[1][1] : '';
+  L.pickup = ld + (lt ? ', no later than ' + lt.slice(0, 2) + ':' + lt.slice(2) : ''); L.delivery = dd + (dt ? ', no later than ' + dt.slice(0, 2) + ':' + dt.slice(2) : '');
+  L.pickupAt = iso(ld, lt); L.deliverBy = iso(dd, dt);
+  var tarps = g(/Tarps:\s*([YN])\b/); L.tarp = tarps ? (tarps === 'Y' ? 'Yes (Tarps: Y)' : 'No (Tarps: N)') : '';
+  L.miles = ocrNum(g(/Miles:\s*([\d,]+)/));
+  var notes = [];
+  [['Broker Load', /Broker Load:\s*([YN])\b/], ['Stop offs', /Stop Offs:\s*([YN])\b/], ['Riggers', /Riggers:\s*([YN])\b/], ['Special instructions', /Special Instructions:\s*([YN])\b/]].forEach(function (p) { var x = g(p[1]); if (x) notes.push(p[0] + ': ' + x); });
+  var exp = g(/Expiration Date:\s*(\d\d\/\d\d\/\d\d)/); if (exp) notes.push('Order expires ' + exp);
+  L.notes = notes.join('. ') + (notes.length ? '.' : '');
+  L.unreadable.push('No rate on this screen: enter one to see the money');
+  L.unreadable.push('Sizes are read the Bennett way, as feet.inches (8.06 = 8 ft 6 in)');
+  if (/Special Instructions:\s*Y/.test(text)) L.unreadable.push('Special instructions are marked Y but the text is not on this screen');
+  return [L];
+}
+
+/* ---- Truckstop single load page ---- */
+function ocrParseTsDetail(lines, words) {
+  var all = lines.map(function (l) { return l.text; }).join('\n');
+  if (!/Posted Rate/i.test(all) || !/Equipment/i.test(all)) return [];
+  var post = words.filter(function (w) { return /^POSTING$/i.test(w.t); })[0], intn = words.filter(function (w) { return /^INTERNAL$/i.test(w.t); })[0];
+  var originW = words.filter(function (w) { return /^Origin$/i.test(w.t); })[0];
+  var maxX = 0; words.forEach(function (w) { maxX = Math.max(maxX, w.x + w.w); });
+  /* POSTING COMPANY under the cities is the same column on a phone. Only cut a side column when POSTING sits clearly to the right of Origin. */
+  var side = !!(post && originW && post.x > originW.x + Math.max(originW.w || 0, 40) + 24);
+  var cut = side ? (post.x - (post.h || 8)) : (maxX + 1);
+  var left = ocrLines(words.filter(function (w) { return w.x + w.w / 2 < cut; })), text = left.map(function (l) { return l.text; }).join('\n');
+  function g(re, n) { var m = text.match(re); return m ? String(m[n || 1]).trim() : ''; }
+  var L = ocrBlankLoad();
+  L.linehaul = ocrNum(g(/Posted Rate\s*\$?([\d,]+(?:\.\d\d)?)/));
+  if (!L.linehaul) {
+    var rateAll = all.match(/Posted\s*Rate\s*\$?\s*([\d,]+(?:\.\d\d)?)/i);
+    if (rateAll) L.linehaul = ocrNum(rateAll[1]);
+  }
+  if (!L.linehaul) L.unreadable.push('Posted rate could not be read');
+  L.miles = ocrNum(g(/Miles\s*([\d,]+)/));
+  if (!L.miles) {
+    var milesAll = all.match(/\bMiles\s*([\d,]+)/i);
+    if (milesAll) L.miles = ocrNum(milesAll[1]);
+  }
+  function placeOnLine(raw) {
+    var t = String(raw || '').replace(/,/g, ', ').replace(/\s+/g, ' ').trim();
+    var m = t.match(/([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\b(?:\s*(\d{5}))?/);
+    if (m && ocrIsState(m[2])) return m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2] + (m[3] ? ' ' + m[3] : '');
+    m = t.match(/([A-Za-z][A-Za-z .'\-]{1,40}?)\s+([A-Z]{2})\s+(\d{5})\b/);
+    if (m && ocrIsState(m[2])) return m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2] + ' ' + m[3];
+    return '';
+  }
+  function cityAfter(label, pool) {
+    pool = pool || left;
+    var i = -1;
+    pool.forEach(function (l, n) { if (i < 0 && new RegExp('^\\W*' + label + '\\b', 'i').test(l.text)) i = n; });
+    if (i < 0) pool.forEach(function (l, n) { if (i < 0 && new RegExp('\\b' + label + '\\b', 'i').test(l.text)) i = n; });
+    if (i < 0) return '';
+    for (var n = i; n < Math.min(pool.length, i + 6); n++) {
+      if (n > i && /^POSTING\b/i.test(pool[n].text)) break;
+      var line = pool[n].text;
+      if (n === i) line = line.replace(new RegExp('^\\W*' + label + '\\b', 'i'), '');
+      var hit = placeOnLine(line);
+      if (hit) return hit;
+    }
+    return '';
+  }
+  L.origin = cityAfter('Origin', left) || cityAfter('Origin', lines);
+  L.destination = cityAfter('Destination', left) || cityAfter('Destination', lines);
+  if (!L.origin || !L.destination) {
+    var lane = all.match(/([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Z]{2})\s+(?:to|\u2192|->|\u2013|\u2014)\s+([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Z]{2})/i);
+    if (lane) {
+      if (!L.origin) L.origin = lane[1].replace(/\s+/g, ' ').trim();
+      if (!L.destination) L.destination = lane[2].replace(/\s+/g, ' ').trim();
+    }
+  }
+  if (!L.origin || !L.destination) {
+    var blobPlaces = ocrPlacesFromRowText(all);
+    if (!L.origin && blobPlaces[0]) L.origin = blobPlaces[0];
+    if (!L.destination && blobPlaces[1]) L.destination = blobPlaces[1];
+  }
+  if (!L.origin) L.unreadable.push('Origin could not be read'); if (!L.destination) L.unreadable.push('Destination could not be read');
+  ocrClearFilledWarnings(L);
+  var pu = g(/Pick-?up\s+(.+)/), pu2 = g(/Date\/Time\s+(.+)/); L.pickup = (pu + ' ' + pu2).trim();
+  var eq = g(/Equipment\s+([A-Z]{1,5})\b/); L.equipment = OCR_EQUIP[eq] || (eq ? eq + ' (board code)' : '');
+  L.weight = ocrNum(g(/Weight\s+([\d,]+)/)); L.pieces = g(/Quantity\s+(\d+)/);
+  ['Length', 'Width', 'Height'].forEach(function (k) { var v = g(new RegExp(k + '\\s+([\\d.]+)\\s*ft')); L[k.toLowerCase()] = v ? v + ' ft' : ''; if (!v) L.unreadable.push(k + ' is not on the posting'); });
+  var mode = g(/Mode\s+([A-Z]{2,3})\b/), stops = g(/Stops\s+(\d+)/);
+  var si = -1; left.forEach(function (l, n) { if (/Special Information/i.test(l.text)) si = n; });
+  var special = si >= 0 ? left.slice(si + 1).map(function (l) { return l.text; }).join(' ').trim() : '';
+  var mid = post ? ocrLines(words.filter(function (w) { return w.x >= post.x - post.h && (!intn || w.x + w.w < intn.x - intn.h); })) : [];
+  var company = '', phase = 0;
+  mid.forEach(function (l) { if (phase === 0 && /POSTING/.test(l.text)) { phase = 1; return; } if (phase === 1 && /Rating|First|Call|Feedback|Contact/i.test(l.text)) phase = 2; if (phase === 1) company += (company ? ' ' : '') + l.text; });
+  var midText = mid.map(function (l) { return l.text; }).join('\n'), mc = (midText.match(/Broker MC\s+(\d+)/) || [])[1], phone = (all.match(/\b(\d{3}-\d{3}-\d{4})\b/) || [])[1];
+  L.ref = 'Truckstop' + (company ? ', ' + company : '') + (mc ? ', broker MC ' + mc : '') + (phone ? ', ' + phone : '');
+  var notes = []; if (mode) notes.push('Mode: ' + mode); if (stops) notes.push('Stops: ' + stops); if (special) notes.push('Special information: ' + special);
+  L.notes = notes.join('. ');
+  L.unreadable.push('Delivery date is not on the posting'); L.unreadable.push('Commodity is not on the posting unless it is in the special information');
+  return [L];
+}
+
+/* ---- Bennett / EFS fuel price list ---- */
+function ocrParseFuel(lines) {
+  var priceRe = /^\|?\$(\d{1,2}\.\d{3,4})\|?$/, header = null, out = [];
+  lines.forEach(function (l) { if (/\bCity\b/.test(l.text) && /\bState\b/.test(l.text) && /PPG/.test(l.text)) header = l; });
+  var cx = {};
+  if (header) header.words.forEach(function (w, i) {
+    if (/^Stop$/i.test(w.t) && header.words[i - 1]) cx.stop = header.words[i - 1].x;
+    else if (/^Road/i.test(w.t)) cx.road = w.x; else if (/^City$/i.test(w.t)) cx.city = w.x; else if (/^State$/i.test(w.t)) cx.state = w.x;
+  });
+  var cols = cx.stop != null && cx.road != null && cx.city != null && cx.state != null;
+  lines.forEach(function (l) {
+    var prices = l.words.filter(function (w) { return priceRe.test(w.t); });
+    if (prices.length < 2) return;
+    var before = l.words.filter(function (w) { return w.x < prices[0].x && !/^\|+$/.test(w.t); });
+    var st = before[before.length - 1], state = st ? st.t.replace(/[^A-Za-z]/g, '').toUpperCase() : '';
+    if (!ocrIsState(state)) return;
+    var body = before.slice(0, -1), start = -1;
+    body.forEach(function (w, i) { if (/^\d{4}-$|^\d{4}-\d\d-?$/.test(w.t.replace(/\|/g, ''))) start = i; });
+    body = body.slice(start + 1);
+    function txt(ws) { return ws.map(function (w) { return w.t.replace(/^\|-/, 'I-').replace(/\|/g, ''); }).join(' ').replace(/\s+/g, ' ').replace(/&amp;?|[&@;]+\s*$/g, '').trim(); }
+    var tol = l.words[0].h * 0.6, stop, city, road;
+    if (cols) {
+      stop = txt(body.filter(function (w) { return w.x < cx.road - tol; }));
+      road = txt(body.filter(function (w) { return w.x >= cx.road - tol && w.x < cx.city - tol; }));
+      city = txt(body.filter(function (w) { return w.x >= cx.city - tol; }));
+    } else { stop = txt(body); road = ''; city = ''; }
+    var retail = prices[0].t.match(priceRe)[1], price = prices[1].t.match(priceRe)[1];
+    if (!(+price > 1 && +price < 15)) return;
+    out.push({ stop: stop, road: road, city: ocrTitle(city), state: state, retail: retail, price: price, _cy: l.cy });
+  });
+  return out;
+}
+
+// Two reads of the same picture: keep the fuller one, fill its gaps from the other, flag numbers that disagree.
+function ocrMerge(a, b) {
+  if (!b) return a; if (!a) return b;
+  var labels = { linehaul: 'Rate', miles: 'Miles', deadhead: 'Deadhead', weight: 'Weight', length: 'Length', width: 'Width', height: 'Height' };
+  Object.keys(labels).forEach(function (k) {
+    var x = String(a[k] || '').trim(), y = String(b[k] || '').trim();
+    if (!x && y) { a[k] = y; a.unreadable = a.unreadable.filter(function (u) { return u.indexOf(labels[k] + ' reads as') !== 0 && u.indexOf(labels[k] + ' is blank') !== 0 && !/^Posted rate could not be read/i.test(u); }); a.unreadable.push(labels[k] + ' was read on the second try only (' + y + '): check it'); }
+    else if (x && y && x !== y) a.unreadable.push(labels[k] + ' read two ways, ' + x + ' and ' + y + '. Using ' + x + ': check it');
+  });
+  ['equipment', 'commodity', 'pickup', 'delivery'].forEach(function (k) { if (!String(a[k] || '').trim() && String(b[k] || '').trim()) a[k] = b[k]; });
+  a.origin = ocrBetterPlace(a.origin, b.origin);
+  a.destination = ocrBetterPlace(a.destination, b.destination);
+  ocrClearFilledWarnings(a);
+  return a;
+}
+function ocrPair(primary, secondary) {
+  var used = {};
+  var out = primary.map(function (p) {
+    var best = -1, bd = 1e9;
+    secondary.forEach(function (s, i) { var d = Math.abs((s._cy || 0) - (p._cy || 0)); if (!used[i] && d < bd) { bd = d; best = i; } });
+    if (best >= 0 && (bd < 25 || primary.length === 1)) { used[best] = true; return ocrMerge(p, secondary[best]); }
+    return p;
+  });
+  secondary.forEach(function (s, i) { if (!used[i] && !primary.length) out.push(s); else if (!used[i] && primary.every(function (p) { return Math.abs((p._cy || 0) - (s._cy || 0)) > 25; })) { s.unreadable.push('This row was found on the second try only: check every field'); out.push(s); } });
+  return out;
+}
+/* ---- Trinity Logistics rate confirmation ---- */
+function ocrParseTrinity(text) {
+  var raw = String(text || '');
+  if (!/Trinity\s+Logistics/i.test(raw) && !/Rate\s+Confirmation\s*[-–—]\s*Trinity/i.test(raw)) return [];
+  var L = ocrBlankLoad();
+  var ref = (raw.match(/Reference\s*#\s*(\d+)/i) || raw.match(/Shipment\s*#\s+(\d+)/i) || [])[1];
+  L.ref = 'Trinity' + (ref ? ' #' + ref : '');
+  var miles = raw.match(/Shipment\s*Miles\s*([\d,]+(?:\.\d+)?)/i);
+  if (miles) {
+    var mn = ocrNum(miles[1]);
+    if (mn && parseFloat(mn) > 0) L.miles = String(Math.round(parseFloat(mn)));
+  }
+  function stopPlace(kind) {
+    var re = new RegExp(kind + '[\\s\\S]{0,320}?([A-Za-z][A-Za-z .\'\\-]{1,48}?),\\s*([A-Z]{2})\\s+(\\d{5})\\b', 'i');
+    var m = raw.match(re);
+    if (!m) return '';
+    var city = m[1].replace(/\s+/g, ' ').trim();
+    var streetish = /^(?:N|S|E|W|North|South|East|West|NE|NW|SE|SW|Dr|Rd|St|Ave|Blvd|Ln|Hwy|Road|Drive|Street|Avenue|Boulevard|Way|Trail|Pike|Ct|Court)$/i;
+    var toks = city.split(/\s+/), i = toks.length - 1;
+    while (i > 0 && !streetish.test(toks[i - 1])) i--;
+    if (i > 0 && streetish.test(toks[i - 1])) city = toks.slice(i).join(' ');
+    else if (toks.length > 2) city = toks[toks.length - 1];
+    return ocrTitle(city) + ', ' + m[2].toUpperCase() + ' ' + m[3];
+  }
+  L.origin = stopPlace('Pickup');
+  L.destination = stopPlace('Delivery');
+  var lh = raw.match(/\bLINEHAUL\b(?:(?!FUEL\s*SURCHARGE)[\s\S]){0,80}?\$\s*([\d,]+(?:\.\d+)?)/i);
+  if (!lh) lh = raw.match(/\bLINEHAUL\b(?:(?!FUEL\s*SURCHARGE)[^\n]){0,80}?([\d,]+\.\d{2})/i);
+  if (lh) L.linehaul = ocrNum(lh[1]);
+  var fscMi = raw.match(/FUEL\s*SURCHARGE[\s\S]{0,80}?\$?\s*([\d.]+)\s*(?:\/\s*mi(?:le)?|per\s*(?:loaded\s*)?mi(?:le)?)/i);
+  if (fscMi) {
+    var fn = ocrNum(fscMi[1]);
+    if (fn && parseFloat(fn) > 0 && parseFloat(fn) < 5) L.fsc = fn;
+  }
+  /* Dollar fuel totals without a per-mile rate are ignored (not invented into $/mi, not added to linehaul). */
+    var extras = 0;
+  var agree = (raw.match(/Carrier\s*Rate\s*Agreement[\s\S]{0,1200}?(?=Shipment\s*Notes|Terms\s*of\s*Agreement|$)/i) || [])[0] || '';
+  var im, itemRe = /^\s*\d+\s+(LINEHAUL|FUEL\s*SURCHARGE|[A-Z][A-Z \/&\-]{2,40})\b[\s\S]{0,140}?\$\s*([\d,]+(?:\.\d+)?)/gim;
+  while ((im = itemRe.exec(agree))) {
+    var desc = String(im[1] || '').toUpperCase();
+    var amt = parseFloat(ocrNum(im[2]) || '0');
+    if (!(amt > 0)) continue;
+    if (/LINE\s*HAUL|LINEHAUL|FUEL|TOTAL/.test(desc)) continue;
+    extras += amt;
+  }
+  if (extras > 0) L.tarpFee = String(Math.round(extras * 100) / 100);
+  var eq = raw.match(/Eq\s*Type\s+([A-Za-z0-9]+)/i);
+  if (eq) {
+    var code = String(eq[1]).replace(/^\d+/, '').toUpperCase();
+    if (code === 'FB') code = 'F';
+    L.equipment = OCR_EQUIP[code] || (code ? code + ' (Trinity eq)' : eq[1]);
+  }
+  var wt = raw.match(/([\d,]+(?:\.\d+)?)\s*lbs\b/i);
+  if (wt) L.weight = ocrNum(wt[1]);
+  if (!L.origin) L.unreadable.push('Origin could not be read');
+  if (!L.destination) L.unreadable.push('Destination could not be read');
+  if (!L.linehaul) L.unreadable.push('Linehaul could not be read');
+  if (!(L.linehaul || L.origin || L.destination || L.miles)) return [];
+  return [L];
+}
+
+/* ---- Evans Transportation rate confirmation ---- */
+function ocrParseEvans(text) {
+  var raw = String(text || '');
+  if (!/Evans\s+Transportation/i.test(raw) && !/evanstrans\.com/i.test(raw)) return [];
+  var L = ocrBlankLoad();
+  var ref = (raw.match(/Contract\s*#:\s*(\S+)/i) || [])[1];
+  L.ref = 'Evans' + (ref ? ' ' + ref : '');
+  function cityAtEndOfLabeledLine(label) {
+    var line = (raw.match(new RegExp(label + '\\s*:[^\\n]*', 'i')) || [])[0] || '';
+    var m = line.match(/([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})\s*$/);
+    if (!m) {
+      // Fallback: last City, ST ZIP on that line
+      var all = [], mm, re = /([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})/g;
+      while ((mm = re.exec(line))) all.push(mm);
+      m = all.length ? all[all.length - 1] : null;
+    }
+    if (!m) return '';
+    var city = m[1].replace(/\s+/g, ' ').trim();
+    // Drop leading street-ish tokens if city still has a street word before the real city
+    var parts = city.split(/\s+/);
+    if (parts.length > 1 && /^(N|S|E|W|North|South|East|West|Dr|Rd|St|Ave|Blvd|Ln|Hwy|Sw|Nw|Se|Ne)$/i.test(parts[parts.length - 2])) {
+      // keep as-is; better: take last 1–3 capitalized words that look like a city
+    }
+    // Prefer known simple city: take the trailing word(s) after the last street token
+    var streetish = /^(?:N|S|E|W|North|South|East|West|Dr|Rd|St|Ave|Blvd|Ln|Hwy|Sw|Nw|Se|Ne|Gate|Suite|Ste|Road|Drive|Street|Avenue|Boulevard)$/i;
+    var toks = city.split(/\s+/), i = toks.length - 1;
+    while (i > 0 && !streetish.test(toks[i - 1])) i--;
+    if (i > 0 && streetish.test(toks[i - 1])) city = toks.slice(i).join(' ');
+    else if (toks.length > 3) city = toks.slice(-2).join(' ');
+    return ocrTitle(city) + ', ' + m[2].toUpperCase() + ' ' + m[3];
+  }
+  L.origin = cityAtEndOfLabeledLine('Origin');
+  L.destination = cityAtEndOfLabeledLine('Destination');
+  if (!L.origin) {
+    var puBlock = (raw.match(/Stop\s*1\s*\(\s*pickup\s*\)[\s\S]{0,450}?(?=Stop\s*2\s*\(|Freight\s*Terms|$)/i) || [])[0] || '';
+    var pum = puBlock.match(/([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})\b/);
+    if (pum) L.origin = ocrTitle(pum[1].replace(/\s+/g, ' ').trim()) + ', ' + pum[2].toUpperCase() + ' ' + pum[3];
+  }
+  if (!L.destination) {
+    var drBlock = (raw.match(/Stop\s*2\s*\(\s*(?:drop|delivery)\s*\)[\s\S]{0,450}?(?=Freight\s*Terms|Accessorial|Page\s+\d|$)/i) || [])[0] || '';
+    var drm = drBlock.match(/([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})\b/);
+    if (drm) L.destination = ocrTitle(drm[1].replace(/\s+/g, ' ').trim()) + ', ' + drm[2].toUpperCase() + ' ' + drm[3];
+  }
+  var ft = raw.match(/Freight\s*Terms:\s*\$?\s*([\d,]+(?:\.\d+)?)[^\n]*?\(([\d,]+(?:\.\d+)?)\s*lb\)[^\n]*?\(([\d,]+(?:\.\d+)?)\s*miles?\)/i);
+  if (ft) {
+    L.linehaul = ocrNum(ft[1]);
+    L.weight = ocrNum(ft[2]);
+    var em = ocrNum(ft[3]);
+    if (em && parseFloat(em) > 0) L.miles = String(Math.round(parseFloat(em)));
+  }
+  if (!L.linehaul) {
+    var lh = raw.match(/\bLinehaul\b\s+([\d,]+(?:\.\d+)?)/i) || raw.match(/\bLinehaul\b(?:(?!Fuel\s*Surcharge)[\s\S]){0,120}?\$\s*([\d,]+(?:\.\d+)?)/i);
+    if (lh) L.linehaul = ocrNum(lh[1]);
+  }
+  if (!L.miles) {
+    var mi = raw.match(/\(([\d,]+(?:\.\d+)?)\s*miles?\)/i);
+    if (mi) {
+      var mn = ocrNum(mi[1]);
+      if (mn && parseFloat(mn) > 0) L.miles = String(Math.round(parseFloat(mn)));
+    }
+  }
+  var fscMi = raw.match(/Fuel\s*Surcharge[\s\S]{0,80}?\$?\s*([\d.]+)\s*(?:\/\s*mi(?:le)?|per\s*(?:loaded\s*)?mi(?:le)?)/i);
+  if (fscMi) {
+    var fn = ocrNum(fscMi[1]);
+    if (fn && parseFloat(fn) > 0 && parseFloat(fn) < 5) L.fsc = fn;
+  }
+  var extras = 0, rm, rowRe = /^([A-Za-z][A-Za-z0-9 \/&\-]{2,40})\s+([\d,]+(?:\.\d+)?)\s+Flat\s*Rate\s+\$?\s*([\d,]+(?:\.\d+)?)/gim;
+  while ((rm = rowRe.exec(raw))) {
+    var d = String(rm[1] || '').toUpperCase();
+    var amt = parseFloat(ocrNum(rm[3]) || '0');
+    if (!(amt > 0)) continue;
+    if (/LINEHAUL|LINE\s*HAUL|FUEL|DISCOUNT|TOTAL/.test(d)) continue;
+    extras += amt;
+  }
+  if (extras > 0) L.tarpFee = String(Math.round(extras * 100) / 100);
+  var eq = raw.match(/Equipment\s*Required:\s*([^\n]+)/i);
+  if (eq) L.equipment = eq[1].replace(/\s+/g, ' ').trim();
+  if (!L.origin) L.unreadable.push('Origin could not be read');
+  if (!L.destination) L.unreadable.push('Destination could not be read');
+  if (!L.linehaul) L.unreadable.push('Linehaul could not be read');
+  if (!(L.linehaul || L.origin || L.destination || L.miles)) return [];
+  return [L];
+}
+
+/* ---- Landstar rate confirmation (agency LHT + older JXD forms) ---- */
+function ocrParseLandstar(text) {
+  var raw = String(text || '');
+  if (!/\bLANDSTAR\b/i.test(raw)) return [];
+  var L = ocrBlankLoad();
+  var fb = (raw.match(/Freight\s*Bill\s*#:\s*(\d+)/i) || raw.match(/Reference\s*#:\s*[A-Z]{2,4}\s*(\d+)/i) || raw.match(/\bJXD\s+(\d+)/i) || [])[1];
+  L.ref = 'Landstar' + (fb ? ' #' + fb : '');
+  var milesM = raw.match(/Total\s*Miles:\s*([\d,]+)/i);
+  if (milesM) {
+    var mn = ocrNum(milesM[1]);
+    if (mn && parseFloat(mn) > 0) L.miles = mn;
+  }
+  // Miles may be absent on some Landstar forms — leave blank, do not invent
+  var pay = raw.match(/Pay\s*Capacity[\s\S]{0,240}?\$\s*([\d,]+(?:\.\d+)?)/i);
+  if (!pay) pay = raw.match(/Agreed\s*Rate[\s\S]{0,240}?\$\s*([\d,]+(?:\.\d+)?)/i);
+  if (!pay) {
+    var early = raw.split(/Driver\s+MUST\s+CALL/i)[0] || raw.slice(0, 2500);
+    pay = early.match(/\$\s*([\d,]+\.\d{2})\b/);
+  }
+  if (pay) L.linehaul = ocrNum(pay[1]);
+  function placeFromBlock(block) {
+    if (!block) return '';
+    var m = block.match(/\bAddress:\s*([A-Za-z][A-Za-z .'\-]{1,40}?)\s+([A-Z]{2})\s+(\d{5})\b/)
+      || block.match(/\b([A-Z][A-Za-z .'\-]{1,40}?),?\s+([A-Z]{2})\s+(\d{5})\b/);
+    if (!m) return '';
+    return ocrTitle(m[1].replace(/\s+/g, ' ').trim()) + ', ' + m[2].toUpperCase() + ' ' + m[3];
+  }
+  var oBlock = (raw.match(/Stop\s*#?\s*1\s*Origin[\s\S]{0,700}?(?=Stop\s*#?\s*2\s*Destination|$)/i) || [])[0];
+  var dBlock = (raw.match(/Stop\s*#?\s*2\s*Destination[\s\S]{0,700}?(?=Freight\s*Bill|Notes|Agreed\s*Rate|$)/i) || [])[0];
+  L.origin = placeFromBlock(oBlock);
+  L.destination = placeFromBlock(dBlock);
+  if (!L.origin || !L.destination) {
+    var pair = raw.match(/([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})\s+([A-Za-z][A-Za-z .'\-]{1,40}?),\s*([A-Z]{2})\s+(\d{5})/);
+    if (pair && !/JACKSONVILLE|SUTTON\s+PARK|LANDSTAR/i.test(pair[1] + ' ' + pair[4])) {
+      if (!L.origin) L.origin = ocrTitle(pair[1].replace(/\s+/g, ' ').trim()) + ', ' + pair[2].toUpperCase() + ' ' + pair[3];
+      if (!L.destination) L.destination = ocrTitle(pair[4].replace(/\s+/g, ' ').trim()) + ', ' + pair[5].toUpperCase() + ' ' + pair[6];
+    }
+  }
+  if (!L.origin || !L.destination) {
+    var places = [], pm, pre = /\b([A-Z][A-Za-z .'\-]{1,40}?),?\s+([A-Z]{2})\s+(\d{5})\b/g;
+    while ((pm = pre.exec(raw))) {
+      var city = pm[1].replace(/\s+/g, ' ').trim();
+      if (/JACKSONVILLE|SUTTON|BELFORT|LANDSTAR|MOMENTUM/i.test(city)) continue;
+      if (/^[A-Z]{2}$/.test(city)) continue;
+      places.push(ocrTitle(city) + ', ' + pm[2].toUpperCase() + ' ' + pm[3]);
+      if (places.length >= 4) break;
+    }
+    if (!L.origin && places[0]) L.origin = places[0];
+    if (!L.destination && places[1]) L.destination = places[1];
+  }
+  var fscMi = raw.match(/Fuel\s*Surcharge[\s\S]{0,80}?\$?\s*([\d.]+)\s*(?:\/\s*mi(?:le)?|per\s*(?:loaded\s*)?mi(?:le)?)/i);
+  if (fscMi) {
+    var fn = ocrNum(fscMi[1]);
+    if (fn && parseFloat(fn) > 0 && parseFloat(fn) < 5) L.fsc = fn;
+  }
+  var eq = raw.match(/Equipment:\s*([A-Za-z0-9]+)/i);
+  if (eq) {
+    var code = String(eq[1]).replace(/^\d+/, '').toUpperCase();
+    L.equipment = OCR_EQUIP[code] || eq[1];
+  } else if (/\bFLAT\b/.test(raw.slice(0, 1500))) {
+    L.equipment = 'Flatbed (F)';
+  }
+  if (!L.origin) L.unreadable.push('Origin could not be read');
+  if (!L.destination) L.unreadable.push('Destination could not be read');
+  if (!L.linehaul) L.unreadable.push('Linehaul could not be read');
+  if (!milesM) L.unreadable.push('Miles are not printed on this rate confirmation');
+  if (!(L.linehaul || L.origin || L.destination || L.miles)) return [];
+  return [L];
+}
+
+function ocrParseRateCons(text) {
+  var raw = String(text || '');
+  var t = ocrParseTrinity(raw);
+  if (t.length) return { loads: t, kind: 'Trinity rate confirmation' };
+  var e = ocrParseEvans(raw);
+  if (e.length) return { loads: e, kind: 'Evans rate confirmation' };
+  var l = ocrParseLandstar(raw);
+  if (l.length) return { loads: l, kind: 'Landstar rate confirmation' };
+  return { loads: [], kind: '' };
+}
+
+// tsvBlock: recognition in "block" mode (best for single digits); tsvSparse: "sparse" mode (best for small table cells)
+function ocrReadScreenshot(tsvBlock, tsvSparse) {
+  var wb = ocrWords(tsvBlock), wsp = ocrWords(tsvSparse), lb = ocrLines(wb), ls = ocrLines(wsp), loads = [];
+  var plainText = lb.map(function (l) { return l.text; }).join('\n') + '\n' + ls.map(function (l) { return l.text; }).join('\n');
+  var rc = (typeof ocrParseRateCons === 'function') ? ocrParseRateCons(plainText) : { loads: [], kind: '' };
+  var bme = rc.loads.length ? [] : ocrPair(ocrParseBME(lb), ocrParseBME(ls));
+  var det = rc.loads.length || bme.length ? [] : ocrPair(ocrParseTsDetail(ls, wsp), ocrParseTsDetail(lb, wb));
+  var ben = rc.loads.length || bme.length || det.length ? [] : ocrPair(ocrParseBennett(ls), ocrParseBennett(lb));
+  var brd = rc.loads.length || bme.length || det.length || ben.length ? [] : ocrPair(ocrParseBoard(lb), ocrParseBoard(ls));
+  loads = (rc.loads || []).concat(bme, det, ben, brd);
+  loads.forEach(function (L) { delete L._cy; ocrClearFilledWarnings(L); L.unreadable = L.unreadable.filter(function (u, i, arr) { return arr.indexOf(u) === i; }); });
+  var fa = ocrParseFuel(ls), fb = ocrParseFuel(lb), fuel = fa.length >= fb.length ? fa : fb, other = fuel === fa ? fb : fa;
+  fuel.forEach(function (f) {
+    var twin = other.filter(function (o) { return Math.abs(o._cy - f._cy) < 25; })[0];
+    f.check = twin && twin.price !== f.price ? 'read two ways: ' + f.price + ' and ' + twin.price : '';
+    delete f._cy;
+  });
+  var kind = rc.kind || (bme.length ? 'Bennett load page' : det.length ? 'Truckstop load page' : ben.length ? 'Bennett load table' : brd.length ? 'Truckstop load board' : fuel.length ? 'fuel price list' : '');
+  return { loads: loads, fuel: fuel, kind: kind };
+}
+/*OCR-END*/
+</script>
+<script>
+/* Haul Sheet shared app — lease math, OCR fill, HERE/OSRM route, fuel, weather, dims, POI, 511 */
+(function () {
+  'use strict';
+  var HERE_STORE = 'load-desk-here-key';
+  var DISPATCH_DEFAULT = 24.7;
+  var DRIVER_FLOOR = 1;
+  var SITES = window.HAUL_SITES || {};
+  var POI = window.HAUL_POI || null;
+  var STNAME = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'};
+
+  var load = {
+    origin: '', destination: '', linehaul: 1000, fsc: 0.40, accessorials: 50,
+    cutPct: DISPATCH_DEFAULT, bennett: false, loaded: 0, deadhead: 0,
+    width: '', height: '', length: '', weight: '', equipment: '',
+    costs: 0, mpg: 6.5, dieselGal: 0, runCpm: 0, target: 0.4, startCity: '',
+    here: null, fuel: null, weather: null, routeKind: ''
+  };
+  var ui = { busy: false, err: '', fuelBusy: false, fuelErr: '', wxBusy: false, wxErr: '', ocrBusy: false, ocrNote: '', shotUrl: '', boardLoads: null, typedFsc: false, typedTarp: false };
+
+  function $(id) { return document.getElementById(id); }
+  function num(v) { var n = parseFloat(String(v == null ? '' : v).replace(/[$,]/g, '')); return isFinite(n) ? n : 0; }
+  function cents(n) { n = Number(n); if (!isFinite(n)) return 0; return Math.round(n * 100) / 100; }
+  function money(v) { var a = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (v < 0 ? '\u2212$' : '$') + a; }
+  function intn(v) { return Math.round(v).toLocaleString('en-US'); }
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function hrs(min) { var m = Math.round(min || 0); var H = Math.floor(m / 60), M = m % 60; return H + ' h' + (M ? ' ' + M + ' min' : ''); }
+  function place(v) { return String(v || '').split('(')[0].trim(); }
+  function scoreState(v) { var m = String(v || '').match(/,\s*([A-Za-z]{2})\b/); return m ? m[1].toUpperCase() : ''; }
+  function stName(code) { return STNAME[code] || code; }
+  function hereKey() { var el = $('here-key'); return el ? el.value.trim() : ''; }
+
+  /* ---- lease math: cut ONLY on linehaul; FSC = $/loaded mi × loaded miles (0 if miles blank) ---- */
+  function analyze() {
+    var linehaul = cents(Math.max(0, num(load.linehaul)));
+    var fscPerMile = Math.max(0, num(load.fsc));
+    var loadedMiles = Math.max(0, num(load.loaded));
+    var fsc = loadedMiles > 0 ? cents(fscPerMile * loadedMiles) : 0;
+    var accessorialTotal = cents(Math.max(0, num(load.accessorials)));
+    var pulled = cents(fsc + accessorialTotal);
+    var overRate = pulled > linehaul + 0.001;
+    var feeBase = overRate ? 0 : cents(Math.max(0, linehaul - pulled));
+    var feePct = load.bennett ? 0 : Math.max(0, num(load.cutPct));
+    var dispatchFee = overRate ? 0 : cents((feePct / 100) * feeBase);
+    var gross = linehaul;
+    var netRevenue = overRate ? linehaul : cents(feeBase - dispatchFee + pulled);
+    var deadheadMiles = Math.max(0, num(load.deadhead));
+    var totalMiles = loadedMiles + deadheadMiles;
+    var mpg = Math.max(0, num(load.mpg));
+    var diesel = Math.max(0, num(load.dieselGal));
+    var dieselFromStops = false;
+    if (!(diesel > 0) && load.fuel && load.fuel.stops) {
+      var prices = load.fuel.stops.filter(function (x) { return x && x.cur === 'USD' && x.p > 0; }).map(function (x) { return x.p; });
+      if (prices.length) {
+        diesel = prices.reduce(function (a, b) { return a + b; }, 0) / prices.length;
+        dieselFromStops = true;
+      }
+    }
+    var otherCpm = Math.max(0, num(load.runCpm));
+    var gallons = mpg > 0 ? totalMiles / mpg : 0;
+    var fuelBurn = cents(gallons * diesel);
+    var otherRun = cents(totalMiles * otherCpm);
+    var totalCost = cents(fuelBurn + otherRun);
+    var runPerMile = totalMiles > 0 ? totalCost / totalMiles : 0;
+    var profit = cents(netRevenue - totalCost);
+    var ppm = loadedMiles > 0 ? profit / loadedMiles : 0;
+    var target = Math.max(0, num(load.target));
+    return {
+      linehaul: linehaul, fsc: fsc, fscPerMile: fscPerMile, accessorialTotal: accessorialTotal, overRate: overRate, feeBase: feeBase, feePct: feePct,
+      dispatchFee: dispatchFee, gross: gross, netRevenue: netRevenue,
+      loadedMiles: loadedMiles, deadheadMiles: deadheadMiles, totalMiles: totalMiles,
+      mpg: mpg, diesel: diesel, dieselFromStops: dieselFromStops, gallons: gallons,
+      fuelBurn: fuelBurn, otherRun: otherRun, otherCpm: otherCpm, runPerMile: runPerMile,
+      totalCost: totalCost, profit: profit, ppm: ppm, target: target
+    };
+  }
+
+  function parseDim(v) {
+    if (v == null) return null;
+    var s = String(v).trim().toLowerCase().replace(/[\u2033\u201d\u201c]/g, '"').replace(/[\u2032\u2019\u2018]/g, "'");
+    if (!s) return null;
+    var m = s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft|feet|foot)\.?\s*(?:(\d+(?:\.\d+)?)\s*(?:"|in|inch|inches)?\.?)?$/);
+    if (m) return parseFloat(m[1]) * 12 + (m[2] ? parseFloat(m[2]) : 0);
+    m = s.match(/^(\d+(?:\.\d+)?)\s*(?:"|in|inch|inches)\.?$/);
+    if (m) return parseFloat(m[1]);
+    m = s.match(/^(\d+(?:\.\d+)?)$/);
+    if (m) return parseFloat(m[1]) * 12;
+    return null;
+  }
+  function parseWeight(v) {
+    if (v == null) return null;
+    var s = String(v).trim().toLowerCase().replace(/,/g, '');
+    var m = s.match(/^(\d+(?:\.\d+)?)\s*(k)?\s*(?:lb|lbs|pounds)?\.?$/);
+    if (!m) return null;
+    return parseFloat(m[1]) * (m[2] ? 1000 : 1);
+  }
+  function fmtDim(inches) {
+    var total = Math.round(inches * 10) / 10;
+    var ft = Math.floor(total / 12), rem = Math.round((total - ft * 12) * 10) / 10;
+    if (rem >= 12) { ft += 1; rem = 0; }
+    return rem ? ft + ' ft ' + rem + ' in' : ft + ' ft';
+  }
+  function deckFor(equipment) {
+    var e = String(equipment || '').toLowerCase();
+    if (!e) return null;
+    if (/step|drop deck|single drop/.test(e)) return { h: 42, name: 'step deck' };
+    if (/rgn|lowboy|low boy|double drop|removable/.test(e)) return { h: 24, name: 'lowboy' };
+    if (/van|reefer|refriger|box/.test(e)) return { enclosed: true };
+    if (/flat|conestoga|stretch/.test(e)) return { h: 60, name: 'flatbed' };
+    return null;
+  }
+  function legalCheck() {
+    var out = [], tare = 33000;
+    function dim(name, raw) {
+      var v = parseDim(raw);
+      if (v == null) out.push({ level: 'unknown', text: String(raw || '').trim() ? name + ' "' + String(raw).trim() + '" is not readable as a size.' : name + ' not given.' });
+      return v;
+    }
+    var w = dim('Width', load.width);
+    if (w != null) out.push(w > 102
+      ? { level: 'over', kind: 'width', text: fmtDim(w) + ' wide. Over the 8 ft 6 in limit: oversize, permit likely in every state on the route.' }
+      : { level: 'ok', text: fmtDim(w) + ' wide. Within 8 ft 6 in.' });
+    var h = dim('Height', load.height), deck = deckFor(load.equipment);
+    if (h != null) {
+      if (deck && deck.enclosed) out.push(h > 110
+        ? { level: 'over', kind: 'height', text: 'Freight is ' + fmtDim(h) + ' tall. A standard dry van or reefer has about 9 ft 2 in inside.' }
+        : { level: 'ok', text: 'Freight is ' + fmtDim(h) + ' tall and rides inside the trailer.' });
+      else if (deck) {
+        var tot = h + deck.h;
+        out.push(tot > 162
+          ? { level: 'over', kind: 'height', text: 'About ' + fmtDim(tot) + ' loaded (' + fmtDim(h) + ' freight plus an assumed ' + fmtDim(deck.h) + ' deck for a ' + deck.name + '). Over 13 ft 6 in: overheight, permit and a route survey likely.' }
+          : { level: 'ok', text: 'About ' + fmtDim(tot) + ' loaded (' + fmtDim(h) + ' freight plus an assumed ' + fmtDim(deck.h) + ' deck for a ' + deck.name + '). ' + (tot === 162 ? 'Right at 13 ft 6 in: measure it loaded.' : 'Under 13 ft 6 in.') });
+      } else out.push(h > 162
+        ? { level: 'over', kind: 'height', text: 'Freight alone is ' + fmtDim(h) + ' tall, over 13 ft 6 in before deck height.' }
+        : { level: 'note', text: 'Freight is ' + fmtDim(h) + ' tall. Add your deck height and compare with 13 ft 6 in.' });
+    }
+    var len = dim('Length', load.length);
+    if (len != null) out.push(len > 636
+      ? { level: 'over', kind: 'length', text: fmtDim(len) + ' long. Longer than a 53 ft trailer: overlength, permit likely.' }
+      : len > 576
+        ? { level: 'ok', text: fmtDim(len) + ' long. Needs a 53 ft trailer; it will not fit a 48.' }
+        : { level: 'ok', text: fmtDim(len) + ' long. Fits a 48 or 53 ft trailer.' });
+    var wt = parseWeight(load.weight);
+    if (wt == null) out.push({ level: 'unknown', text: String(load.weight || '').trim() ? 'Weight "' + String(load.weight).trim() + '" is not readable.' : 'Weight not given.' });
+    else {
+      var g = wt + tare;
+      out.push(g > 80000
+        ? { level: 'over', kind: 'weight', text: 'About ' + g.toLocaleString('en-US') + ' lb gross (' + wt.toLocaleString('en-US') + ' freight + ' + tare.toLocaleString('en-US') + ' empty). Over 80,000 lb: overweight permit needed, and only for a load that cannot be split.' }
+        : { level: 'ok', text: 'About ' + g.toLocaleString('en-US') + ' lb gross (' + wt.toLocaleString('en-US') + ' freight + ' + tare.toLocaleString('en-US') + ' empty). Under 80,000 lb. Axle weights still need a scale.' });
+    }
+    return out;
+  }
+  function permitNotes() {
+    var checks = legalCheck();
+    var over = checks.filter(function (c) { return c.level === 'over'; });
+    if (!over.length) return '';
+    var pack = statesFor();
+    var kinds = {};
+    over.forEach(function (c) { if (c.kind) kinds[c.kind] = true; });
+    var what = Object.keys(kinds).join(', ');
+    var states = pack.states;
+    if (!states.length) return 'Oversize/overweight on this load (' + what + '). Permit likely in every state you cross — check each state DOT. This page does not invent permit fees.';
+    return 'Oversize/overweight (' + what + '). Permit likely in: ' + states.map(stName).join(', ') + '. Open each state DOT for permits. This page does not invent permit fees.';
+  }
+
+  /* ---- geo / HERE helpers ---- */
+  var FP_TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function hereDecode(str) {
+    var vals = [], cur = 0, shift = 0;
+    for (var i = 0; i < str.length; i++) {
+      var v = FP_TABLE.indexOf(str.charAt(i)); if (v < 0) return [];
+      cur += (v & 31) * Math.pow(2, shift);
+      if (v & 32) shift += 5; else { vals.push(cur); cur = 0; shift = 0; }
+    }
+    if (vals.length < 4 || vals[0] !== 1) return [];
+    var head = vals[1], f = Math.pow(10, head & 15), step = ((head >> 4) & 7) ? 3 : 2, lat = 0, lng = 0, out = [];
+    function zz(n) { return n % 2 ? -(n + 1) / 2 : n / 2; }
+    for (var k = 2; k + 1 < vals.length; k += step) { lat += zz(vals[k]); lng += zz(vals[k + 1]); out.push([lat / f, lng / f]); }
+    return out;
+  }
+  function geoXY(p, lat0) { return [p[1] * 111320 * Math.cos(lat0 * Math.PI / 180), p[0] * 110540]; }
+  function geoDist(a, b) { var m = (a[0] + b[0]) / 2, q = geoXY(a, m), r = geoXY(b, m); return Math.hypot(q[0] - r[0], q[1] - r[1]); }
+  function geoSeg(p, a, b) {
+    var P = geoXY(p, p[0]), A = geoXY(a, p[0]), B = geoXY(b, p[0]), dx = B[0] - A[0], dy = B[1] - A[1], len2 = dx * dx + dy * dy;
+    var t = len2 ? Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / len2)) : 0;
+    return { d: Math.hypot(P[0] - (A[0] + t * dx), P[1] - (A[1] + t * dy)), t: t };
+  }
+  function geoThin(pts, tol) {
+    if (pts.length < 3) return pts.slice();
+    var keep = new Uint8Array(pts.length), stack = [[0, pts.length - 1]]; keep[0] = keep[pts.length - 1] = 1;
+    while (stack.length) {
+      var s = stack.pop(), a = s[0], b = s[1], worst = 0, at = -1;
+      for (var i = a + 1; i < b; i++) { var d = geoSeg(pts[i], pts[a], pts[b]).d; if (d > worst) { worst = d; at = i; } }
+      if (at > 0 && worst > tol) { keep[at] = 1; stack.push([a, at], [at, b]); }
+    }
+    return pts.filter(function (x, i) { return keep[i]; });
+  }
+  function lineOf() {
+    var a = load.here && load.here.line, out = [];
+    if (!Array.isArray(a)) return out;
+    for (var i = 0; i + 1 < a.length; i += 2) out.push([a[i], a[i + 1]]);
+    return out;
+  }
+  function hereRoads(sections) {
+    var segs = [];
+    (sections || []).forEach(function (sec) { (sec.spans || []).forEach(function (sp) {
+      var name = (sp.routeNumbers && sp.routeNumbers[0] && sp.routeNumbers[0].value) || '', last = segs[segs.length - 1];
+      if (last && last.name === name) last.m += sp.length || 0; else { last = { name: name, m: sp.length || 0, st: [] }; segs.push(last); }
+      if (sp.stateCode && last.st.indexOf(sp.stateCode) < 0) last.st.push(sp.stateCode);
+    }); });
+    var out = [];
+    segs.filter(function (x) { return x.name && x.m >= 8000; }).forEach(function (x) {
+      var last = out[out.length - 1];
+      if (last && last.name === x.name) { last.m += x.m; x.st.forEach(function (c) { if (last.st.indexOf(c) < 0) last.st.push(c); }); } else out.push(x);
+    });
+    return out.map(function (x) { return x.name + (x.st.length ? ' (' + x.st.join(', ') + ')' : '') + ' ' + Math.round(x.m / 1609.344) + ' mi'; }).join(', ');
+  }
+  function normState(code) {
+    var c = String(code || '');
+    if (c.indexOf('-') >= 0) c = c.split('-').pop();
+    c = c.toUpperCase();
+    return /^[A-Z]{2}$/.test(c) ? c : '';
+  }
+  function statesFrom(sections) {
+    var out = [];
+    (sections || []).forEach(function (sec) { (sec.spans || []).forEach(function (sp) {
+      var st = normState(sp.stateCode);
+      if (st && out.indexOf(st) < 0) out.push(st);
+    }); });
+    return out;
+  }
+  function hereProfile() {
+    var hIn = parseDim(load.height), deck = deckFor(load.equipment), wIn = parseDim(load.width), lenIn = parseDim(load.length), wt = parseWeight(load.weight), tare = 33000;
+    var height = Math.max(162, hIn != null && deck && deck.h ? hIn + deck.h : 0);
+    var width = Math.max(102, wIn || 0), length = Math.max(900, lenIn != null ? lenIn + 240 : 0), gross = wt != null ? wt + tare : 80000;
+    return { cm: { height: Math.round(height * 2.54), width: Math.round(width * 2.54), length: Math.round(length * 2.54) }, kg: Math.round(gross * 0.45359237),
+      text: fmtDim(height) + ' high, ' + fmtDim(width) + ' wide, ' + fmtDim(length) + ' long overall, ' + Math.round(gross).toLocaleString('en-US') + ' lb gross, 5 axles, 1 trailer' };
+  }
+  function hereJson(url, opts) {
+    return fetch(url, opts).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }, function () { return { ok: r.ok, status: r.status, j: {} }; });
+    }).then(function (x) {
+      if (!x.ok) { var j = x.j || {}; var e = new Error(j.title || j.error_description || j.error || j.message || ('HERE answered ' + x.status)); e.status = x.status; throw e; }
+      return x.j;
+    }, function () { var e = new Error('Could not reach HERE. Check the internet connection.'); e.network = true; throw e; });
+  }
+  function hereGeocode(q, key) {
+    return hereJson('https://geocode.search.hereapi.com/v1/geocode?limit=1&in=countryCode%3AUSA%2CCAN%2CMEX&q=' + encodeURIComponent(q) + '&apiKey=' + encodeURIComponent(key)).then(function (j) {
+      var it = j.items && j.items[0];
+      if (!it || !it.position) throw new Error('HERE could not find "' + q + '".');
+      return { lat: it.position.lat, lng: it.position.lng, label: String((it.address && it.address.label) || it.title || q).replace(/, United States$/, '') };
+    });
+  }
+  function nominatimGeocode(q) {
+    /* Nominatim returns 403 to browsers; Open-Meteo + Photon are CORS-friendly fallbacks. */
+    function openMeteo() {
+      var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=1&language=en&format=json';
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('geocoder ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var it = j && j.results && j.results[0];
+        if (it && it.latitude != null && it.longitude != null) {
+          var label = [it.name, it.admin1, it.country_code].filter(Boolean).join(', ');
+          return { lat: Number(it.latitude), lng: Number(it.longitude), label: label || q };
+        }
+        throw new Error('Could not find "' + q + '"');
+      });
+    }
+    function photon() {
+      var url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1';
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('geocoder ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var f = j && j.features && j.features[0], c = f && f.geometry && f.geometry.coordinates, p = f && f.properties;
+        if (c && c.length >= 2) {
+          var label = p ? [p.name, p.state || p.city, p.countrycode].filter(Boolean).join(', ') : q;
+          return { lat: Number(c[1]), lng: Number(c[0]), label: label || q };
+        }
+        throw new Error('Could not find "' + q + '"');
+      });
+    }
+    return openMeteo().then(null, function () { return photon(); });
+  }
+
+  function runRoute() {
+    if (ui.busy) return;
+    readFields();
+    var from = place(load.origin), to = place(load.destination);
+    ui.err = '';
+    if (!from || !to) { ui.err = 'Need an origin and destination first (drop a screenshot or type the cities).'; render(); return; }
+    if (hereKey()) return hereRoute();
+    return osrmRoute();
+  }
+
+  function hereRoute() {
+    var key = hereKey(), from = place(load.origin), to = place(load.destination);
+    ui.busy = true; ui.err = ''; render();
+    var prof = hereProfile(), start = String(load.startCity || '').trim(), found = [], pickup = null;
+    var asks = [hereGeocode(from, key), hereGeocode(to, key)]; if (start) asks.push(hereGeocode(start, key));
+    return Promise.all(asks).then(function (pts) {
+      found = [pts[0].label, pts[1].label, pts[2] ? pts[2].label : '']; pickup = pts[0];
+      var first = pts[2] || pts[0];
+      var base = 'https://router.hereapi.com/v8/routes?transportMode=truck&origin=' + first.lat + ',' + first.lng + (pts[2] ? '&via=' + pts[0].lat + ',' + pts[0].lng : '') + '&destination=' + pts[1].lat + ',' + pts[1].lng +
+        '&currency=USD&vehicle[height]=' + prof.cm.height + '&vehicle[width]=' + prof.cm.width + '&vehicle[length]=' + prof.cm.length + '&vehicle[grossWeight]=' + prof.kg +
+        '&vehicle[axleCount]=5&vehicle[trailerCount]=1&apiKey=' + encodeURIComponent(key);
+      return Promise.all([hereJson(base + '&return=summary,tolls'), hereJson(base + '&return=polyline&spans=routeNumbers,length,stateCode').then(null, function () { return null; })]);
+    }).then(function (res) {
+      var j = res[0], route = j.routes && j.routes[0];
+      if (!route) throw new Error((j.notices && j.notices[0] && j.notices[0].title) || 'HERE found no truck route between these places.');
+      var sections = route.sections || [], sum = { dead: { m: 0, s: 0 }, load: { m: 0, s: 0 } }, tolls = 0, tollPoints = 0, notices = [];
+      function note(n) { var t = n && (n.title || n.code); if (t && notices.indexOf(t) < 0) notices.push(t); }
+      (j.notices || []).forEach(note); (route.notices || []).forEach(note);
+      function splitAt(secs) {
+        if (!found[2] || secs.length < 2) return 0;
+        var cut = 1, best = 1e9;
+        secs.slice(0, -1).forEach(function (sec, i) {
+          var loc = sec.arrival && sec.arrival.place && sec.arrival.place.location; if (!loc) return;
+          var dlt = Math.abs(loc.lat - pickup.lat) + Math.abs(loc.lng - pickup.lng); if (dlt < best) { best = dlt; cut = i + 1; }
+        });
+        return cut;
+      }
+      var cut = splitAt(sections);
+      sections.forEach(function (sec, i) {
+        var part = i < cut ? sum.dead : sum.load;
+        if (sec.summary) { part.m += sec.summary.length || 0; part.s += sec.summary.duration || 0; }
+        (sec.notices || []).forEach(note);
+        (sec.tolls || []).forEach(function (t) {
+          var low = null;
+          (t.fares || []).forEach(function (f) { var pr = f.convertedPrice || f.price; if (pr && typeof pr.value === 'number' && (low == null || pr.value < low)) low = pr.value; });
+          if (low != null) { tolls += low; tollPoints++; }
+        });
+      });
+      var r2 = res[1] && res[1].routes && res[1].routes[0] ? res[1].routes[0].sections || [] : [], cut2 = splitAt(r2);
+      load.here = {
+        kind: 'truck', miles: Math.round(sum.load.m / 1609.344), minutes: Math.round(sum.load.s / 60),
+        tolls: Math.round(tolls * 100) / 100, tollPoints: tollPoints,
+        roads: hereRoads(r2.slice(cut2)), from: found[0] || '', to: found[1] || '', notices: notices.slice(0, 12),
+        profile: prof.text, at: new Date().toISOString(), states: statesFrom(r2)
+      };
+      if (cut > 0) {
+        load.here.start = found[2]; load.here.deadMiles = Math.round(sum.dead.m / 1609.344); load.here.deadMinutes = Math.round(sum.dead.s / 60); load.here.deadRoads = hereRoads(r2.slice(0, cut2));
+        if (!num(load.deadhead)) { load.deadhead = load.here.deadMiles; var dh = $('deadhead'); if (dh) dh.value = String(load.deadhead); }
+      }
+      if (!num(load.loaded)) { load.loaded = load.here.miles; var lm = $('loaded'); if (lm) lm.value = String(load.loaded); }
+      var path = []; r2.forEach(function (sec) { if (sec.polyline) path = path.concat(hereDecode(sec.polyline)); });
+      if (path.length > 1) { load.here.line = []; geoThin(path, 250).forEach(function (p) { load.here.line.push(Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5); }); }
+      load.fuel = null; load.weather = null; load.routeKind = 'truck';
+      ui.busy = false; ui.fuelErr = ''; ui.wxErr = '';
+      render();
+      hereFuel(); loadWeather();
+    }).then(null, function (e) {
+      ui.busy = false;
+      ui.err = e && (e.status === 401 || e.status === 403) ? 'HERE turned the key down (' + e.message + '). Check the key and that Routing and Geocoding are allowed.' : e && e.status === 429 ? 'HERE says too many requests. Wait a minute and try again.' : (e && e.message) || 'HERE request failed.';
+      render();
+    });
+  }
+
+  function hwyToken(t) {
+    return /^(?:I|IH|US|SR|SH|HWY)[\s-]?\d/i.test(t);
+  }
+  function hwyName(n) {
+    return /\bInterstate\b/i.test(n) || /\bUS Route\b/i.test(n) || /\b(?:I|US|SR|SH|Hwy)[\s-]?\d+\b/i.test(n) || /\b(?:highway|hwy)\s*\d+/i.test(n);
+  }
+  function highwayLabel(step) {
+    var refs = String((step && step.ref) || '').split(';'), kept = [], i, t;
+    for (i = 0; i < refs.length; i++) {
+      t = refs[i].replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+      if (t && hwyToken(t) && kept.indexOf(t) < 0) kept.push(t);
+    }
+    if (kept.length) return kept.join('; ');
+    t = String((step && step.name) || '').replace(/\s+/g, ' ').trim();
+    if (t && hwyName(t)) return t.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+    return '';
+  }
+  function osrmHighways(legs) {
+    var segs = [];
+    (legs || []).forEach(function (leg) {
+      (leg.steps || []).forEach(function (step) {
+        var name = highwayLabel(step);
+        if (!name) return;
+        var last = segs[segs.length - 1];
+        if (last && last.name === name) last.m += step.distance || 0;
+        else segs.push({ name: name, m: step.distance || 0 });
+      });
+    });
+    return segs.filter(function (x) { return x.m >= 1609.344; }).map(function (x) {
+      return x.name + ' ' + Math.round(x.m / 1609.344) + ' mi';
+    }).join(', ');
+  }
+
+  function osrmRoute() {
+    var from = place(load.origin), to = place(load.destination), start = String(load.startCity || '').trim();
+    ui.busy = true; ui.err = ''; render();
+    var asks = [nominatimGeocode(from), nominatimGeocode(to)];
+    if (start) asks.push(nominatimGeocode(start));
+    return Promise.all(asks).then(function (pts) {
+      var first = pts[2] || pts[0], dest = pts[1], via = pts[2] ? pts[0] : null;
+      var coords = first.lng + ',' + first.lat + (via ? ';' + via.lng + ',' + via.lat : '') + ';' + dest.lng + ',' + dest.lat;
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + coords + '?overview=full&geometries=geojson&steps=true';
+      return fetch(url).then(function (r) { if (!r.ok) throw new Error('OSRM answered ' + r.status); return r.json(); }).then(function (j) {
+        var route = j.routes && j.routes[0];
+        if (!route) throw new Error('No highway route found.');
+        var legs = route.legs || [];
+        var deadM = 0, deadS = 0, loadM = 0, loadS = 0;
+        if (via && legs.length >= 2) {
+          deadM = legs[0].distance || 0; deadS = legs[0].duration || 0;
+          for (var i = 1; i < legs.length; i++) { loadM += legs[i].distance || 0; loadS += legs[i].duration || 0; }
+        } else { loadM = route.distance || 0; loadS = route.duration || 0; }
+        var path = (route.geometry && route.geometry.coordinates || []).map(function (c) { return [c[1], c[0]]; });
+        load.here = {
+          kind: 'highway', miles: Math.round(loadM / 1609.344), minutes: Math.round(loadS / 60),
+          tolls: 0, tollPoints: 0, roads: osrmHighways(via && legs.length >= 2 ? legs.slice(1) : legs), from: pts[0].label, to: pts[1].label,
+          notices: ['These are public highway miles from OSRM, not a truck route. Check clearances, truck bans, and a truck GPS yourself.'],
+          profile: 'car / highway (OSRM + Nominatim)', at: new Date().toISOString(),
+          states: [scoreState(load.origin), scoreState(load.destination)].filter(function (x, i, a) { return x && a.indexOf(x) === i; })
+        };
+        if (via) {
+          load.here.start = pts[2].label; load.here.deadMiles = Math.round(deadM / 1609.344); load.here.deadMinutes = Math.round(deadS / 60);
+          load.here.deadRoads = osrmHighways(legs.slice(0, 1));
+          if (!num(load.deadhead)) { load.deadhead = load.here.deadMiles; var dh = $('deadhead'); if (dh) dh.value = String(load.deadhead); }
+        }
+        if (!num(load.loaded)) { load.loaded = load.here.miles; var lm = $('loaded'); if (lm) lm.value = String(load.loaded); }
+        if (path.length > 1) { load.here.line = []; geoThin(path, 250).forEach(function (p) { load.here.line.push(Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5); }); }
+        load.fuel = null; load.weather = null; load.routeKind = 'highway';
+        ui.busy = false; render();
+        loadWeather();
+      });
+    }).then(null, function (e) {
+      ui.busy = false;
+      ui.err = (e && e.message) || 'Could not get highway miles. Check the city names and your internet.';
+      render();
+    });
+  }
+
+  /* ---- fuel (HERE only, Pilot/FJ/Love's/TA/Petro, street price) ---- */
+  var FUEL_WIDTH = 4000, FUEL_CHUNK = 400000, FUEL_TRIES = [{ types: '-1,-2', limit: 100 }, { types: '1,11', limit: 100 }, { types: '1,11', limit: 50 }, { types: '', limit: 50 }];
+  function fuelChain(name) { var t = String(name || ''); return /pilot|flying\s*j/i.test(t) ? 'Pilot/Flying J' : /\blove.?s\b/i.test(t) ? "Love's" : (/\bTA\b/.test(t) || /travelcenters of america|\bpetro\b(?![- ]?canada)/i.test(t)) ? 'TA/Petro' : ''; }
+  function fuelAge(iso) { var t = Date.parse(iso); if (!isFinite(t)) return { text: 'date not given', old: true }; var h = Math.max(0, (Date.now() - t) / 3600000); return { text: h < 1 ? 'under 1 h ago' : h < 48 ? Math.round(h) + ' h ago' : Math.round(h / 24) + ' days ago', old: h > 72 }; }
+  function hereFuel() {
+    if (ui.fuelBusy) return;
+    var key = hereKey();
+    ui.fuelErr = '';
+    if (!key) { render(); return; }
+    var pts = lineOf();
+    if (pts.length < 2) { ui.fuelErr = 'Need a route path before fuel stops can be looked up.'; render(); return; }
+    ui.fuelBusy = true; render();
+    var cum = [0], i; for (i = 1; i < pts.length; i++) cum.push(cum[i - 1] + geoDist(pts[i - 1], pts[i]));
+    var chunks = [], fromI = 0;
+    for (i = 1; i < pts.length; i++) if (cum[i] - cum[fromI] > FUEL_CHUNK || i === pts.length - 1) { chunks.push(pts.slice(fromI, i + 1)); fromI = i; }
+    chunks = chunks.map(function (c) { var tol = 400; while (c.length > 120 && tol < 3000) { c = geoThin(c, tol); tol *= 1.5; } return c; });
+    var found = {}, tryAt = 0;
+    function post(chunk, offset) {
+      var cfg = FUEL_TRIES[tryAt];
+      return hereJson('https://fuel.hereapi.com/v3/stations?' + (cfg.types ? 'fuelTypes=' + cfg.types + '&' : '') + 'limit=' + cfg.limit + '&offset=' + offset + '&apiKey=' + encodeURIComponent(key),
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ corridor: chunk.map(function (p) { return { lat: p[0], lng: p[1] }; }), width: FUEL_WIDTH }) })
+        .then(null, function (e) { if (e && e.status === 400 && tryAt < FUEL_TRIES.length - 1) { tryAt++; return post(chunk, offset); } throw e; });
+    }
+    function ask(chunk, offset) {
+      return post(chunk, offset).then(function (j) {
+        var list = (j && j.stations) || [];
+        list.forEach(function (st) { if (st && st.position) found[st.id || (st.position.lat + ',' + st.position.lng)] = st; });
+        var got = offset + list.length;
+        return list.length && j.total > got && got < 400 ? ask(chunk, got) : null;
+      });
+    }
+    chunks.reduce(function (p, c) { return p.then(function () { return ask(c, 0); }); }, Promise.resolve()).then(function () {
+      var group = FUEL_TRIES[tryAt].types === '-1,-2', notDiesel = ['2', '3', '4', '5', '14', '21', '22', '69', '74'], stops = [];
+      Object.keys(found).forEach(function (k) {
+        var st = found[k], best = null;
+        (st.prices || []).forEach(function (pr) {
+          var ft = String(pr.fuelType), rank = ft === '11' ? 0 : ft === '1' ? 1 : group && notDiesel.indexOf(ft) < 0 ? 2 : 9;
+          if (rank > 2 || typeof pr.price !== 'number' || !(pr.price > 0)) return;
+          if (!best || rank < best.rank) best = { rank: rank, pr: pr, ft: ft };
+        });
+        if (!best) return;
+        var unit = String(best.pr.unit || '').toLowerCase(), price = /^l/.test(unit) ? best.pr.price * 3.785411784 : best.pr.price;
+        var pnt = [st.position.lat, st.position.lng], near = { d: 1e12, along: 0 };
+        for (var n = 1; n < pts.length; n++) { var g = geoSeg(pnt, pts[n - 1], pts[n]); if (g.d < near.d) near = { d: g.d, along: cum[n - 1] + g.t * (cum[n] - cum[n - 1]) }; }
+        var a = st.address || {}, name = String(st.name || st.brand || 'Station');
+        var ch = fuelChain(name + ' ' + (st.brand || ''));
+        if (!ch) return;
+        stops.push({ n: name, c: String(a.city || ''), s: String(a.stateCode || a.state || ''), mi: Math.round(near.along / 1609.344), off: Math.round(near.d / 160.9344) / 10,
+          p: Math.round(price * 1000) / 1000, cur: String(best.pr.currency || 'USD'), t: best.ft === '11' ? 'truck diesel' : best.ft === '1' ? 'diesel' : 'diesel, HERE type ' + best.ft,
+          m: String(best.pr.modified || st.modified || ''), ch: ch });
+      });
+      stops.sort(function (x, y) { return x.mi - y.mi || x.p - y.p; });
+      load.fuel = { at: new Date().toISOString(), stops: stops };
+      ui.fuelBusy = false; render();
+    }).then(null, function (e) {
+      ui.fuelBusy = false;
+      ui.fuelErr = e && (e.status === 401 || e.status === 403) ? 'HERE turned fuel down (' + e.message + '). Fuel Prices may not be on this key.' : e && e.status === 429 ? 'HERE says too many requests. Wait a minute.' : (e && e.message) || 'HERE fuel request failed.';
+      render();
+    });
+  }
+
+  /* ---- weather ---- */
+  function samplePts(pts) {
+    if (pts.length < 2) return [];
+    var cum = [0], i; for (i = 1; i < pts.length; i++) cum.push(cum[i - 1] + geoDist(pts[i - 1], pts[i]));
+    var total = cum[cum.length - 1], n = total < 80000 ? 2 : 4, out = [];
+    function at(dist) {
+      if (dist <= 0) return pts[0];
+      if (dist >= total) return pts[pts.length - 1];
+      for (var k = 1; k < pts.length; k++) if (cum[k] >= dist) {
+        var span = cum[k] - cum[k - 1], t = span ? (dist - cum[k - 1]) / span : 0;
+        return [pts[k - 1][0] + (pts[k][0] - pts[k - 1][0]) * t, pts[k - 1][1] + (pts[k][1] - pts[k - 1][1]) * t];
+      }
+      return pts[pts.length - 1];
+    }
+    for (i = 0; i < n; i++) out.push(at(total * (n === 1 ? 0 : i / (n - 1))));
+    return out;
+  }
+  function loadWeather() {
+    if (ui.wxBusy) return;
+    var pts = lineOf();
+    ui.wxErr = '';
+    if (pts.length < 2) { render(); return; }
+    ui.wxBusy = true; render();
+    var picks = samplePts(pts), rows = [];
+    function one(p) {
+      var url = 'https://api.weather.gov/points/' + p[0].toFixed(4) + ',' + p[1].toFixed(4);
+      return fetch(url, { headers: { 'Accept': 'application/geo+json' } }).then(function (r) {
+        if (!r.ok) throw new Error('weather.gov answered ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var fu = j.properties && j.properties.forecast;
+        var rel = j.properties && j.properties.relativeLocation && j.properties.relativeLocation.properties;
+        var where = rel ? [rel.city, rel.state].filter(Boolean).join(', ') : (p[0].toFixed(2) + ', ' + p[1].toFixed(2));
+        if (!fu) throw new Error('no forecast');
+        return fetch(fu, { headers: { 'Accept': 'application/geo+json' } }).then(function (r) {
+          if (!r.ok) throw new Error('forecast answered ' + r.status);
+          return r.json();
+        }).then(function (f) {
+          var per = (f.properties && f.properties.periods && f.properties.periods[0]) || {};
+          var pop = per.probabilityOfPrecipitation && per.probabilityOfPrecipitation.value;
+          rows.push({ where: where, name: per.name || '', temp: per.temperature, unit: per.temperatureUnit || 'F', wind: [per.windSpeed, per.windDirection].filter(Boolean).join(' '), pop: pop, short: per.shortForecast || '' });
+        });
+      }).then(null, function (e) { rows.push({ where: p[0].toFixed(2) + ', ' + p[1].toFixed(2), error: (e && e.message) || 'failed' }); });
+    }
+    picks.reduce(function (p, pt) { return p.then(function () { return one(pt); }); }, Promise.resolve()).then(function () {
+      load.weather = { at: new Date().toISOString(), rows: rows };
+      ui.wxBusy = false; render();
+    }).then(null, function (e) {
+      ui.wxBusy = false; ui.wxErr = (e && e.message) || 'Weather lookup failed.'; render();
+    });
+  }
+
+  /* ---- POI / states / 511 ---- */
+  function nearLine(pts, lat, lng) {
+    var p = [lat, lng], best = { d: 1e12, along: 0 }, cum = 0;
+    for (var n = 1; n < pts.length; n++) {
+      var seg = geoDist(pts[n - 1], pts[n]);
+      var g = geoSeg(p, pts[n - 1], pts[n]);
+      if (g.d < best.d) best = { d: g.d, along: cum + g.t * seg };
+      cum += seg;
+    }
+    return best;
+  }
+  function matchPoi() {
+    var pts = lineOf();
+    if (pts.length < 2 || !POI) return null;
+    function take(list, maxM, map) {
+      var out = [];
+      (list || []).forEach(function (row) {
+        var g = nearLine(pts, row[0], row[1]);
+        if (g.d <= maxM) out.push(map(row, g));
+      });
+      out.sort(function (a, b) { return a.mi - b.mi || a.off - b.off; });
+      return out.slice(0, 25);
+    }
+    return {
+      wim: take(POI.wim, 8047, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: 'WIM ' + row[3], where: row[2] }; }),
+      id: take(POI.id, 19312, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: row[2], where: [row[3], row[4], row[5]].filter(Boolean).join(' \u00b7 ') }; }),
+      cbp: take(POI.cbp, 32187, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: row[2], where: [row[4], row[3]].filter(Boolean).join(' \u00b7 ') }; })
+    };
+  }
+  function statesFor() {
+    if (load.here && load.here.states && load.here.states.length) return { states: load.here.states, how: 'route' };
+    var a = scoreState(load.origin), b = scoreState(load.destination), s = [];
+    if (a) s.push(a); if (b && s.indexOf(b) < 0) s.push(b);
+    return { states: s, how: s.length ? 'names' : 'none' };
+  }
+
+  /* ---- OCR (Tesseract from jsDelivr, worker fallback) ---- */
+  var ocr = { worker: null, workerExplicit: false, loading: null, log: null };
+  var TESS_JS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  var TESS_WORKER = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js';
+  var TESS_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0';
+  var TESS_LANG = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0';
+  function withTimeout(promise, ms, msg) {
+    return new Promise(function (res, rej) {
+      var done = false;
+      var t = setTimeout(function () { if (!done) { done = true; rej(new Error(msg)); } }, ms);
+      promise.then(function (v) { if (done) return; done = true; clearTimeout(t); res(v); }, function (e) { if (done) return; done = true; clearTimeout(t); rej(e); });
+    });
+  }
+  function ocrLoad() {
+    if (window.Tesseract && window.Tesseract.createWorker) return Promise.resolve();
+    if (!ocr.loading) ocr.loading = new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = TESS_JS;
+      sc.onload = function () { (window.Tesseract && window.Tesseract.createWorker) ? res() : rej(new Error('The reader script loaded but did not start.')); };
+      sc.onerror = function () { ocr.loading = null; rej(new Error('Could not download the reader. Check your internet and try again.')); };
+      document.head.appendChild(sc);
+    });
+    return ocr.loading;
+  }
+  function killOcrWorker() {
+    if (!ocr.worker) return;
+    try { ocr.worker.terminate(); } catch (e) {}
+    ocr.worker = null;
+  }
+  function ocrWorker(explicit) {
+    if (ocr.worker && ocr.workerExplicit === !!explicit) return Promise.resolve(ocr.worker);
+    killOcrWorker();
+    var opts = { logger: function (m) { if (ocr.log) ocr.log(m); } };
+    if (explicit) {
+      opts.workerPath = TESS_WORKER;
+      opts.corePath = TESS_CORE;
+      opts.langPath = TESS_LANG;
+      opts.workerBlobURL = false;
+      opts.gzip = true;
+    }
+    var started = ocrLoad().then(function () {
+      return window.Tesseract.createWorker('eng', 1, opts);
+    });
+    return withTimeout(started, 40000, 'The reader did not start.').then(function (w) {
+      ocr.worker = w;
+      ocr.workerExplicit = !!explicit;
+      return w;
+    }, function (err) { killOcrWorker(); throw err; });
+  }
+  function ocrPrep(src) {
+    return new Promise(function (res, rej) {
+      var blobUrl = '', img = new Image();
+      img.onerror = function () { if (blobUrl) URL.revokeObjectURL(blobUrl); rej(new Error('Could not open that picture.')); };
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) throw new Error('Could not open that picture.');
+          var sc = Math.min(3, Math.max(1, 5600 / w), Math.sqrt(16e6 / (w * h)));
+          var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc));
+          var ctx = c.getContext('2d', { willReadFrequently: true }); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, c.width, c.height); if (blobUrl) URL.revokeObjectURL(blobUrl);
+          var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data, sum = 0, cnt = 0, i, v;
+          for (i = 0; i < p.length; i += 64) { sum += (p[i] + p[i + 1] + p[i + 2]) / 3; cnt++; }
+          var dark = sum / cnt < 110;
+          for (i = 0; i < p.length; i += 4) { v = dark ? 255 - Math.max(p[i], p[i + 1], p[i + 2]) : Math.min(p[i], p[i + 1], p[i + 2]); p[i] = p[i + 1] = p[i + 2] = v; p[i + 3] = 255; }
+          ctx.putImageData(d, 0, 0); res(c);
+        } catch (e) { if (blobUrl) URL.revokeObjectURL(blobUrl); rej(e); }
+      };
+      if (typeof src === 'string') img.src = src;
+      else { blobUrl = URL.createObjectURL(src); img.src = blobUrl; }
+    });
+  }
+  function setInput(id, value) {
+    var el = $(id);
+    if (el) el.value = value == null ? '' : String(value);
+  }
+  function clearSampleNumbers() {
+    ['origin', 'destination', 'linehaul', 'fsc', 'accessorials', 'loaded', 'deadhead'].forEach(function (id) { setInput(id, ''); });
+    load.origin = ''; load.destination = ''; load.linehaul = 0; load.fsc = 0; load.accessorials = 0;
+    load.loaded = 0; load.deadhead = 0;
+    ui.boardLoads = null;
+    ui.typedFsc = false;
+    ui.typedTarp = false;
+  }
+  function laneUseful(L) {
+    return !!(L && (num(L.linehaul) >= 50 || L.origin || L.destination || num(L.miles) > 0));
+  }
+  function fillGaps(dst, src) {
+    if (!dst || !src) return;
+    ['origin', 'destination', 'linehaul', 'miles', 'deadhead', 'fsc'].forEach(function (k) {
+      if (!dst[k] && src[k]) dst[k] = src[k];
+    });
+  }
+  function parseBoardRows(text) {
+    var rowRe = /\$[\d,]{3,}\s+\$\d+\.\d\d\s+\S+\s+\d{1,2}\/\d{1,2}\b/;
+    var out = [];
+    String(text || '').split(/\n/).forEach(function (line) {
+      if (!rowRe.test(line)) return;
+      var t = line.trim().split(/\s+/), i = 0, L = ocrBlankLoad();
+      while (i < t.length && !/^\$/.test(t[i])) i++;
+      var rate = ocrNum(t[i++] || '');
+      if (!(rate && parseFloat(rate) >= 50)) return;
+      L.linehaul = rate;
+      i += 1; // rpm, already on the row; not used as the rate
+      L.equipment = t[i++] || '';
+      i += 1; // pickup date
+      var oc = [];
+      while (i < t.length && !(oc.length && ocrIsState(t[i]) && /^\d+$/.test(t[i + 1] || ''))) oc.push(t[i++]);
+      var os = String(t[i++] || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (!ocrIsState(os) && ocrIsState(os.slice(0, 2))) os = os.slice(0, 2);
+      i += 1; // origin deadhead
+      var dc = [];
+      while (i < t.length && !(dc.length && ocrIsState(t[i]))) dc.push(t[i++]);
+      var ds = String(t[i++] || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (!ocrIsState(ds) && ocrIsState(ds.slice(0, 2))) ds = ds.slice(0, 2);
+      var city = function (parts) { return parts.join(' ').replace(/[^A-Za-z .'\-]/g, '').replace(/\s+/g, ' ').trim(); };
+      L.origin = city(oc) + (ocrIsState(os) ? ', ' + os : '');
+      L.destination = city(dc) + (ocrIsState(ds) ? ', ' + ds : '');
+      var rowPlaces = ocrPlacesFromRowText(line);
+      if (rowPlaces[0]) L.origin = ocrBetterPlace(L.origin, rowPlaces[0]);
+      if (rowPlaces[1]) L.destination = ocrBetterPlace(L.destination, rowPlaces[1]);
+      var rest = t.slice(i), tail = [];
+      while (rest.length && ocrNum(rest[rest.length - 1])) tail.unshift(ocrNum(rest.pop()));
+      if (tail[0] && parseFloat(tail[0]) > 0) L.miles = tail[0];
+      L.unreadable = ['Read from a load-board row. Check origin, destination, rate, and miles.'];
+      if (L.origin || L.destination || L.linehaul) out.push(L);
+    });
+    return out;
+  }
+  function parseHaulOcrText(text) {
+    var raw = String(text || '').replace(/\u00a0/g, ' ').replace(/\r/g, '');
+    if (!raw.trim()) return { loads: [], kind: '' };
+    if (typeof ocrParseRateCons === 'function') {
+      var rc = ocrParseRateCons(raw);
+      if (rc && rc.loads && rc.loads.length) return { loads: rc.loads, kind: rc.kind || 'rate confirmation' };
+    }
+    var board = parseBoardRows(raw);
+    if (board.length >= 2) return { loads: board, kind: 'Truckstop load board' };
+    var L = ocrBlankLoad();
+    var lane = raw.match(/([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Za-z]{2})\s+(?:to|\u2192|->|\u2013|\u2014)\s+([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Za-z]{2})/i);
+    if (!lane) {
+      var soft = raw.match(/\b([A-Za-z][A-Za-z .'\-]{2,40}?)\s*,\s*([A-Z]{2})\s+(?:to|\u2192|->|\u2013|\u2014)\s+([A-Za-z][A-Za-z .'\-]{2,40}?)\s*,\s*([A-Z]{2})\b/i);
+      if (soft) lane = [soft[0], soft[1] + ', ' + soft[2], soft[3] + ', ' + soft[4]];
+    }
+    if (!lane) {
+      var soft2 = raw.match(/\b([A-Za-z][A-Za-z .'\-]{2,40}?)\s+(?:to|\u2192|->)\s+([A-Za-z][A-Za-z .'\-]{2,40}?)\b/i);
+      if (soft2) {
+        var oCity = soft2[1].replace(/\s+/g, ' ').trim(), dCity = soft2[2].replace(/\s+/g, ' ').trim();
+        function findSt(city) {
+          var esc = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          var m = raw.match(new RegExp(esc + '\\s*,\\s*([A-Z]{2})\\b', 'i'));
+          return m ? m[1].toUpperCase() : '';
+        }
+        var oSt = findSt(oCity), dSt = findSt(dCity);
+        lane = [soft2[0], oCity + (oSt ? ', ' + oSt : ''), dCity + (dSt ? ', ' + dSt : '')];
+      }
+    }
+    if (lane) {
+      L.origin = lane[1].replace(/\s+/g, ' ').trim();
+      L.destination = lane[2].replace(/\s+/g, ' ').trim();
+    } else {
+      var origin = raw.match(/\borigin\s*[:\-]\s*([A-Za-z][A-Za-z .'\-]{1,48}(?:,\s*[A-Za-z]{2})?)/i);
+      var dest = raw.match(/\bdest(?:ination)?\s*[:\-]\s*([A-Za-z][A-Za-z .'\-]{1,48}(?:,\s*[A-Za-z]{2})?)/i);
+      if (origin) L.origin = origin[1].replace(/\s+/g, ' ').trim();
+      if (dest) L.destination = dest[1].replace(/\s+/g, ' ').trim();
+    }
+    if (!L.origin || !L.destination) {
+      var blob = typeof ocrPlacesFromRowText === 'function' ? ocrPlacesFromRowText(raw) : [];
+      if (!L.origin && blob[0]) L.origin = blob[0];
+      if (!L.destination && blob[1]) L.destination = blob[1];
+    }
+    var labeled = raw.match(/(?:posted\s*rate|line\s*haul|linehaul|\brate)\s*[:\-]?\s*\$?\s*([\d,]+\.?\d*)/i);
+    var dollar = raw.match(/\$\s*([\d,]+\.?\d*)/);
+    var rateSrc = labeled || dollar;
+    if (rateSrc) {
+      var rn = ocrNum(rateSrc[1]);
+      if (rn && parseFloat(rn) >= 50) L.linehaul = rn;
+    }
+    var miles = raw.match(/(?:loaded\s*miles|total\s*miles|trip\s*miles|\bmiles\b|\bdistance\b|\bdist\b)\s*[:\-]?\s*([\d,]{2,})/i);
+    if (!miles) miles = raw.match(/([\d,]{2,})\s*(?:mi|miles)\b/i);
+    if (miles) {
+      var mn = ocrNum(miles[1]);
+      if (mn && parseFloat(mn) > 0) L.miles = mn;
+    }
+    if (board.length === 1) {
+      fillGaps(L, board[0]);
+      fillGaps(board[0], L);
+      if (laneUseful(board[0])) return { loads: [board[0]], kind: 'one load' };
+    }
+    if (!laneUseful(L)) return { loads: [], kind: '' };
+    if (typeof ocrClearFilledWarnings === 'function') ocrClearFilledWarnings(L);
+    return { loads: [L], kind: 'one load' };
+  }
+  function mergeOcrParsed(structured, plain) {
+    structured = structured || { loads: [], kind: '' };
+    plain = plain || { loads: [], kind: '' };
+    var s = (structured.loads || []).filter(laneUseful);
+    var p = (plain.loads || []).filter(laneUseful);
+    s.forEach(function (L) { if (typeof ocrClearFilledWarnings === 'function') ocrClearFilledWarnings(L); });
+    p.forEach(function (L) { if (typeof ocrClearFilledWarnings === 'function') ocrClearFilledWarnings(L); });
+    var page = /load page|rate confirmation/i.test(structured.kind || '') || /rate confirmation/i.test(plain.kind || '');
+    if (page && s.length) {
+      if (p.length === 1) {
+        fillGaps(s[0], p[0]);
+        if (typeof ocrBetterPlace === 'function') {
+          s[0].origin = ocrBetterPlace(s[0].origin, p[0].origin);
+          s[0].destination = ocrBetterPlace(s[0].destination, p[0].destination);
+        }
+        if (typeof ocrClearFilledWarnings === 'function') ocrClearFilledWarnings(s[0]);
+      }
+      structured.loads = s;
+      return structured;
+    }
+    if (p.length >= 2 || s.length >= 2) {
+      var board = (p.length > s.length) ? p : (s.length > p.length ? s : (s.length >= 2 ? s : p));
+      if (board === s && p.length === s.length && p.length >= 2) {
+        board.forEach(function (row, i) {
+          if (!p[i]) return;
+          if (typeof ocrBetterPlace === 'function') {
+            row.origin = ocrBetterPlace(row.origin, p[i].origin);
+            row.destination = ocrBetterPlace(row.destination, p[i].destination);
+          }
+          if (!row.miles && p[i].miles) row.miles = p[i].miles;
+          if (!row.linehaul && p[i].linehaul) row.linehaul = p[i].linehaul;
+        });
+      }
+      structured.loads = board;
+      structured.kind = structured.kind || plain.kind || 'Truckstop load board';
+      return structured;
+    }
+    if (s.length === 1) {
+      if (p.length === 1) fillGaps(s[0], p[0]);
+      structured.loads = s;
+      structured.kind = structured.kind || plain.kind || 'one load';
+      return structured;
+    }
+    structured.loads = p;
+    structured.kind = p.length >= 2 ? (plain.kind || 'Truckstop load board') : (plain.kind || '');
+    return structured;
+  }
+  function applyOcrLoad(L) {
+    if (!L) return;
+    if (L.origin) setInput('origin', L.origin);
+    if (L.destination) setInput('destination', L.destination);
+    if (num(L.linehaul) >= 50) setInput('linehaul', String(num(L.linehaul)));
+    if (num(L.miles) > 0) setInput('loaded', String(num(L.miles)));
+    if (num(L.deadhead) > 0) setInput('deadhead', String(num(L.deadhead)));
+    /* Only fill FSC box from a clear per-mile rate (< $5/mi). Dollar fuel totals are ignored. */
+    if (num(L.fsc) > 0 && num(L.fsc) < 5) setInput('fsc', String(num(L.fsc)));
+    var extras = num(L.tarpFee) || num(L.other);
+    if (extras > 0) setInput('accessorials', String(extras));
+    if (L.width) setInput('width', L.width);
+    if (L.height) setInput('height', L.height);
+    if (L.length) setInput('length', L.length);
+    if (L.weight) setInput('weight', L.weight);
+    if (L.equipment) setInput('equipment', L.equipment);
+    if (/bennett/i.test(L.ref || '') || /bennett/i.test(String(L.notes || ''))) setBennett(true);
+  }
+  function boardRowPay(L) {
+    /* Score one board row with analyze(). Do not invent fuel: row FSC/tarp if present, else only boxes he typed. */
+    var saved = {
+      linehaul: load.linehaul,
+      fsc: load.fsc,
+      loaded: load.loaded,
+      accessorials: load.accessorials
+    };
+    var rowFsc = num(L && L.fsc);
+    var rowAcc = num(L && L.tarpFee) || num(L && L.other);
+    var fscPer = (rowFsc > 0 && rowFsc < 5) ? rowFsc : (ui.typedFsc ? Math.max(0, num(saved.fsc)) : 0);
+    var acc = rowAcc > 0 ? rowAcc : (ui.typedTarp ? Math.max(0, num(saved.accessorials)) : 0);
+    load.linehaul = Math.max(0, num(L && L.linehaul));
+    load.loaded = Math.max(0, num(L && L.miles));
+    load.fsc = fscPer;
+    load.accessorials = acc;
+    var s = analyze();
+    load.linehaul = saved.linehaul;
+    load.fsc = saved.fsc;
+    load.loaded = saved.loaded;
+    load.accessorials = saved.accessorials;
+    return s;
+  }
+  function renderBoard() {
+    var el = $('boardOut');
+    if (!el) return;
+    var rows = ui.boardLoads || [];
+    if (rows.length < 2) { el.innerHTML = ''; return; }
+    var html = '<div class="card board-card"><h2>Loads on this board (' + rows.length + ')</h2>';
+    html += '<p class="hint">Cut is ' + (load.bennett ? '0% (Bennett)' : (num(load.cutPct) + '% on the rate after fuel and extras are pulled out')) + '. The rate on a row is the whole pay. Fuel is $0 unless that row has a per-mile rate, or you already typed FSC and tarp.</p><ul class="list board">';
+    rows.forEach(function (L, i) {
+      var s = boardRowPay(L);
+      var rateTxt = s.linehaul >= 50 ? money(s.gross) : 'not read';
+      var keepTxt = s.linehaul >= 50 ? money(s.netRevenue) : '\u2014';
+      var cutTxt = s.linehaul >= 50 ? money(s.dispatchFee) : '\u2014';
+      var miTxt = num(L.miles) > 0 ? intn(num(L.miles)) + ' mi' : 'miles not read';
+      html += '<li><button type="button" class="board-pick" data-i="' + i + '">';
+      html += '<span class="board-lane">' + esc(L.origin || 'Origin not read') + ' \u2192 ' + esc(L.destination || 'Destination not read') + '</span>';
+      html += '<span class="board-pay">Rate ' + rateTxt + ' \u00b7 ' + miTxt + ' \u00b7 Cut ' + cutTxt + ' \u00b7 You keep ' + keepTxt + '</span>';
+      html += '</button></li>';
+    });
+    html += '</ul></div>';
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('.board-pick'), function (btn) {
+      btn.addEventListener('click', function () {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        clearSampleNumbers();
+        ui.boardLoads = rows;
+        applyOcrLoad(rows[i]);
+        ui.ocrNote = 'Calculator is showing board load ' + (i + 1) + ' of ' + rows.length + '.';
+        render();
+        runRoute();
+      });
+    });
+  }
+  function showShot(dataUrl) {
+    if (!dataUrl) return;
+    ui.shotUrl = dataUrl;
+    var prev = $('shotPreview');
+    if (!prev) return;
+    if (prev.getAttribute('src') !== dataUrl) prev.src = dataUrl;
+    prev.hidden = false;
+    prev.style.display = 'block';
+  }
+  function readShotFile(file) {
+    return new Promise(function (res, rej) {
+      var reader = new FileReader();
+      reader.onload = function () { res(String(reader.result || '')); };
+      reader.onerror = function () { rej(new Error('Could not open that picture.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+  function noteShot(text) {
+    ui.ocrNote = text;
+    var n = $('shotNote'); if (n) n.textContent = text;
+  }
+  function runOcr(image, explicit) {
+    var pass = 1;
+    ocr.log = function (m) {
+      if (!m) return;
+      if (/recogniz/i.test(m.status || '')) noteShot('Reading screenshot, pass ' + pass + ' of 2 \u2014 ' + Math.round((m.progress || 0) * 100) + '%');
+      else noteShot(explicit ? 'Trying the second reader\u2026' : 'Loading the reader, first time only\u2026');
+    };
+    return Promise.all([ocrWorker(!!explicit), ocrPrep(image)]).then(function (r) {
+      var w = r[0], canvas = r[1], firstTsv = '', firstText = '';
+      return w.setParameters({ tessedit_pageseg_mode: '6' })
+        .then(function () { return w.recognize(canvas, {}, { text: true, tsv: true }); })
+        .then(function (a) {
+          firstTsv = a && a.data ? (a.data.tsv || '') : '';
+          firstText = a && a.data ? (a.data.text || '') : '';
+          pass = 2;
+          return w.setParameters({ tessedit_pageseg_mode: '11' });
+        })
+        .then(function () { return w.recognize(canvas, {}, { text: true, tsv: true }); })
+        .then(function (b) {
+          var secondTsv = b && b.data ? (b.data.tsv || '') : '';
+          var secondText = b && b.data ? (b.data.text || '') : '';
+          var text = String(firstText || '') + '\n' + String(secondText || '');
+          var wordCount = (typeof ocrWords === 'function' ? ocrWords(firstTsv).length + ocrWords(secondTsv).length : 0);
+          if (!text.trim() && !wordCount) return { empty: true, loads: [], kind: '', text: '' };
+          var parsed = (typeof ocrReadScreenshot === 'function') ? ocrReadScreenshot(firstTsv, secondTsv) : { loads: [], kind: '' };
+          parsed.text = text;
+          parsed = mergeOcrParsed(parsed, parseHaulOcrText(text));
+          parsed.empty = false;
+          return parsed;
+        });
+    });
+  }
+  function finishOcr(result) {
+    ui.ocrBusy = false;
+    if (ui.shotUrl) showShot(ui.shotUrl);
+    var text = String((result && result.text) || '');
+    var loads = (result && result.loads ? result.loads : []).filter(laneUseful);
+    var nothingRead = (!result || result.empty || !text.trim()) && !loads.length;
+    if (nothingRead) {
+      ui.boardLoads = null;
+      ui.ocrNote = "Couldn't read the picture. No text came back, so origin, destination, rate, and miles were left blank.";
+      render();
+      return;
+    }
+    if (!loads.length) {
+      ui.boardLoads = null;
+      ui.ocrNote = "Couldn't read a rate, origin, destination, or miles from the picture. Nothing was filled in.";
+      render();
+      return;
+    }
+    if (loads.length >= 2) {
+      ui.boardLoads = loads;
+      applyOcrLoad(loads[0]);
+      ui.ocrNote = 'Read as a load board: ' + loads.length + ' loads. Each lane is listed below. The boxes show load 1 until you tap another. Cut is on linehaul only.';
+    } else {
+      ui.boardLoads = null;
+      applyOcrLoad(loads[0]);
+      var L = loads[0], bits = [];
+      if (L.origin) bits.push('origin ' + L.origin);
+      if (L.destination) bits.push('destination ' + L.destination);
+      if (num(L.linehaul) >= 50) bits.push('rate $' + num(L.linehaul));
+      if (num(L.miles) > 0) bits.push(num(L.miles) + ' mi');
+      ui.ocrNote = 'Read one load. ' + bits.join(', ') + '.';
+    }
+    render();
+    var shown = loads[0];
+    if (shown && place(shown.origin) && place(shown.destination)) runRoute();
+  }
+  function readScreenshot(file, dataUrl) {
+    clearSampleNumbers();
+    ui.ocrBusy = true;
+    ui.ocrNote = 'Reading the photo\u2026';
+    render();
+    var opened = dataUrl ? Promise.resolve(dataUrl) : readShotFile(file);
+    return opened.then(function (url) {
+      if (!url) throw new Error('Could not open that picture.');
+      showShot(url);
+      noteShot('Photo is on screen. Reading it\u2026');
+      return runOcr(url, false).catch(function () {
+        showShot(ui.shotUrl);
+        noteShot('First reader failed. Trying tesseract.js from jsDelivr\u2026');
+        if (typeof killOcrWorker === 'function') killOcrWorker();
+        return runOcr(url, true);
+      });
+    }).then(finishOcr, function (e) {
+      ui.ocrBusy = false;
+      if (ui.shotUrl) showShot(ui.shotUrl);
+      clearSampleNumbers();
+      ui.ocrNote = "Couldn't read the picture. " + ((e && e.message) || 'The reader failed.') + ' Origin, destination, rate, and miles were left blank.';
+      render();
+    });
+  }
+
+  function readFields() {
+    function v(id) { var el = $(id); return el ? el.value : ''; }
+    load.origin = v('origin'); load.destination = v('destination');
+    load.linehaul = num(v('linehaul')); load.fsc = num(v('fsc')); load.accessorials = num(v('accessorials'));
+    /* FSC is $/loaded mile only. Do not add it into linehaul. */
+    load.cutPct = num(v('cutPct')); load.loaded = num(v('loaded')); load.deadhead = num(v('deadhead'));
+    load.width = v('width'); load.height = v('height'); load.length = v('length'); load.weight = v('weight');
+    load.equipment = v('equipment'); load.mpg = num(v('mpg')); load.dieselGal = num(v('dieselGal')); load.runCpm = num(v('runCpm')); load.target = num(v('target'));
+    load.startCity = v('startCity');
+  }
+  function setBennett(on) {
+    load.bennett = !!on;
+    var a = $('srcLease'), b = $('srcBennett'), wrap = $('cutWrap'), cut = $('cutPct');
+    if (a) a.classList.toggle('on', !load.bennett);
+    if (b) b.classList.toggle('on', load.bennett);
+    if (wrap) wrap.style.opacity = load.bennett ? '0.45' : '1';
+    if (cut) cut.disabled = load.bennett;
+  }
+  function verdict(s) {
+    var fill = 'wait', w = 'Enter a rate', line = 'Linehaul minus cut, plus fuel surcharge and extras';
+    if (s.linehaul > 0 || s.loadedMiles > 0 || s.totalCost > 0) {
+      if (s.loadedMiles <= 0 || s.totalCost <= 0) { fill = 'yes'; w = 'You keep'; line = 'After the cut. Set miles, diesel, and your tires/oil/insurance rate to see what the truck costs.'; }
+      else if (s.ppm >= s.target && s.ppm >= DRIVER_FLOOR) { fill = 'yes'; w = 'Take it'; line = money(s.ppm) + ' / loaded mile after costs.'; }
+      else if (s.ppm >= DRIVER_FLOOR) { fill = 'maybe'; w = 'Thin'; line = money(s.ppm) + ' / loaded mile. Under your target.'; }
+      else if (s.profit >= 0) { fill = 'maybe'; w = 'Barely'; line = 'You keep a little. Not enough.'; }
+      else { fill = 'no'; w = 'Pass'; line = 'Lose money after costs.'; }
+    }
+    var worthTaking = fill === 'yes' ? 'yes' : fill === 'maybe' ? 'maybe' : 'no';
+    return { fill: fill, word: w, line: line, worthTaking: worthTaking };
+  }
+  function worthMark(entry) {
+    var w = entry && entry.heroWord;
+    if (w === 'Take it') return 'Worth taking';
+    if (w === 'Thin' || w === 'Pass' || w === 'Barely' || w === 'You keep') return w;
+    if (w === 'Enter a rate') return 'Enter a rate';
+    if (entry && entry.worthTaking === 'yes') return 'Worth taking';
+    if (entry && entry.worthTaking === 'maybe') return 'Thin';
+    return 'Pass';
+  }
+  function renderHero(s) {
+    var hero = $('hero'), keep = $('keepAfterCut'), word = $('heroWord'), hint = $('keepHint');
+    if (!hero) return;
+    var v = verdict(s);
+    hero.className = 'hero ' + v.fill;
+    if (keep) keep.textContent = s.overRate ? '\u2014' : money(s.netRevenue);
+    if (word) word.textContent = v.word;
+    if (hint) hint.textContent = s.overRate ? 'Fuel and extras are more than the rate. Nothing was added on top, and no cut was figured.' : v.line;
+  }
+  function renderMoney(s) {
+    function set(id, t) { var el = $(id); if (el) el.textContent = t; }
+    set('oLh', money(s.linehaul));
+    set('oFsc', money(s.fsc) + (s.loadedMiles > 0 ? ' (' + Number(s.fscPerMile).toFixed(2) + '/mi \u00d7 ' + intn(s.loadedMiles) + ' mi, inside the rate)' : ' ($0 until loaded miles are entered)'));
+    set('oGross', s.overRate ? money(s.linehaul) : money(s.gross));
+    set('oAcc', money(s.accessorialTotal));
+    set('oNet', s.overRate ? '\u2014' : money(s.netRevenue));
+    set('oCut', s.overRate ? '\u2014' : money(s.dispatchFee));
+    set('oFuelBurn', money(s.fuelBurn || 0) + (s.dieselFromStops ? ' (avg diesel on route)' : ''));
+    set('oRunOther', money(s.otherRun || 0));
+    set('oCost', money(s.totalCost));
+    set('oRunCpm', s.totalMiles > 0 ? money(s.runPerMile) + '/mi' : '\u2014');
+    set('oProfit', money(s.profit));
+    set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
+    set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on the rate after fuel and extras'));
+  }
+  var routeMap = null, routeMapSig = '';
+  function routeLineSig(pts) {
+    if (!pts || pts.length < 2) return '';
+    var a = pts[0], b = pts[pts.length - 1];
+    return String(pts.length) + '|' + a[0] + ',' + a[1] + '|' + b[0] + ',' + b[1];
+  }
+  function mountRouteMap(pts) {
+    var box = document.getElementById('routeMap');
+    if (!box || !pts || pts.length < 2) return;
+    var sig = routeLineSig(pts);
+    if (routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box) return;
+    if (routeMap) { try { routeMap.remove(); } catch (e0) {} routeMap = null; routeMapSig = ''; }
+    if (typeof L === 'undefined' || !L || typeof L.map !== 'function') return;
+    try {
+      var map = L.map(box);
+      routeMap = map;
+      routeMapSig = sig;
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+      var line = L.polyline(pts, { color: '#c45c26', weight: 5 }).addTo(map);
+      map.fitBounds(line.getBounds(), { padding: [16, 16] });
+      setTimeout(function () { try { if (routeMap === map) map.invalidateSize(); } catch (e2) {} }, 60);
+    } catch (e) {
+      if (routeMap) { try { routeMap.remove(); } catch (e3) {} }
+      routeMap = null; routeMapSig = '';
+    }
+  }
+  function renderRoute() {
+    var el = $('routeOut'); if (!el) return;
+    var h = load.here, html = '';
+    var o = place(load.origin), d = place(load.destination);
+    var pts = lineOf(), sig = routeLineSig(pts), showMap = pts.length >= 2;
+    var box = document.getElementById('routeMap');
+    var keepMap = !!(showMap && box && box.parentNode === el && routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box);
+    if (showMap && !keepMap) html += '<div id="routeMap"></div>';
+    if (o && d) {
+      html += '<p class="route"><a class="maplink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&amp;origin=' + encodeURIComponent(o) + '&amp;destination=' + encodeURIComponent(d) + '&amp;travelmode=driving">Open in Google Maps</a></p>';
+      html += '<p class="note">Car directions, not a truck route.</p>';
+    }
+    if (h) {
+      var truck = h.kind === 'truck';
+      html += '<ul class="list plain">';
+      html += '<li><strong>' + (truck ? 'Truck route: ' : 'Highway miles (not a truck route): ') + intn(h.miles) + ' mi</strong>, ' + hrs(h.minutes) + ', ' + esc(h.from) + ' \u2192 ' + esc(h.to) + '</li>';
+      if (h.deadMiles != null) html += '<li>Empty: ' + intn(h.deadMiles) + ' mi, ' + hrs(h.deadMinutes) + (h.start ? ', from ' + esc(h.start) : '') + '</li>';
+      if (h.roads) html += '<li>Highways: ' + esc(h.roads) + '</li>';
+      else html += '<li>No highway names on this route.</li>';
+      if (h.deadRoads) html += '<li>Empty highways: ' + esc(h.deadRoads) + '</li>';
+      if (truck) html += '<li>Tolls: ' + (h.tollPoints ? money(h.tolls) + ' at ' + h.tollPoints + ' point(s), lowest fare each' : 'None reported') + '</li>';
+      if (h.profile) html += '<li>Profile: ' + esc(h.profile) + '</li>';
+      (h.notices || []).forEach(function (n) { html += '<li class="neg">' + esc(n) + '</li>'; });
+      html += '</ul>';
+      if (!truck) html += '<p class="note">Labeled highway miles from public OSRM + Nominatim. Paste a HERE key for a real truck route.</p>';
+    } else if (!ui.busy) {
+      html += '<p class="note">' + (hereKey() ? 'Press Get route for a HERE truck path.' : 'No HERE key — Get route will use public highway miles (OSRM) and label them as highway, not truck. Paste a HERE key for truck routing.') + '</p>';
+    }
+    if (ui.err) html += '<p class="note neg">' + esc(ui.err) + '</p>';
+    if (ui.busy) html += '<p class="note">Getting route\u2026</p>';
+    if (!keepMap && routeMap) { try { routeMap.remove(); } catch (e1) {} routeMap = null; routeMapSig = ''; }
+    if (keepMap) {
+      el.removeChild(box);
+      el.innerHTML = html;
+      el.insertBefore(box, el.firstChild);
+    } else {
+      el.innerHTML = html;
+      if (showMap) mountRouteMap(pts);
+    }
+    var btn = $('btnRoute'); if (btn) { btn.disabled = !!ui.busy; btn.textContent = ui.busy ? 'Getting route\u2026' : (h ? 'Get route again' : 'Get route'); }
+  }
+  function renderFuel() {
+    var el = $('fuelOut'); if (!el) return;
+    var html = '';
+    if (!hereKey()) {
+      html = '<p class="note">Fuel stops need a HERE key. With a key, this page shows Pilot, Flying J, Love\u2019s, TA, and Petro street prices along the truck route. It does not scrape chain websites and does not invent prices.</p>';
+    } else if (ui.fuelBusy) html = '<p class="note">Asking HERE for diesel along the route\u2026</p>';
+    else if (load.fuel && load.fuel.stops) {
+      var stops = load.fuel.stops, usd = stops.filter(function (x) { return x.cur === 'USD'; }), low = null;
+      usd.forEach(function (x) { if (low == null || x.p < low) low = x.p; });
+      if (!stops.length) html = '<p class="note">HERE returned no Pilot, Flying J, Love\u2019s, TA, or Petro diesel price along this route. Nothing was estimated.</p>';
+      else {
+        html = '<p class="route">' + stops.length + ' chain stop' + (stops.length === 1 ? '' : 's') + ' with a reported street diesel price.</p>';
+        html += '<div class="scroll"><table class="fuelt"><thead><tr><th>Mile</th><th>Stop</th><th>Street price</th></tr></thead><tbody>';
+        stops.slice(0, 40).forEach(function (x) {
+          var age = fuelAge(x.m), where = [x.c, x.s].filter(Boolean).join(', ');
+          html += '<tr><td>' + intn(x.mi) + '</td><td>' + esc(x.n) + '<br><small>' + esc(x.ch) + (where ? ' \u00b7 ' + esc(where) : '') + (x.off >= 0.3 ? ' \u00b7 ' + x.off.toFixed(1) + ' mi off' : '') + '</small><br><small' + (age.old ? ' class="old"' : '') + '>reported ' + esc(age.text) + '</small></td><td>$' + x.p.toFixed(3) + '<br><small>' + esc(x.t) + (x.p === low ? ' \u00b7 lowest' : '') + '</small></td></tr>';
+        });
+        html += '</tbody></table></div>';
+        html += '<p class="note">Street price from HERE, not a card or EFS discount, and not scraped from chain sites.</p>';
+      }
+    } else html = '<p class="note">Get a HERE truck route first, then refresh diesel. Only Pilot, Flying J, Love\u2019s, TA, and Petro with a reported price are listed.</p>';
+    if (ui.fuelErr) html += '<p class="note neg">' + esc(ui.fuelErr) + '</p>';
+    el.innerHTML = html;
+    var btn = $('btnFuel'); if (btn) { btn.hidden = !hereKey(); btn.disabled = !!(ui.fuelBusy || ui.busy); btn.textContent = ui.fuelBusy ? 'Asking HERE\u2026' : 'Get diesel on this route'; }
+  }
+  function renderWeather() {
+    var el = $('weatherOut'); if (!el) return;
+    var html = '';
+    if (lineOf().length < 2 && !(load.weather && load.weather.rows)) html = '<p class="note">Weather needs a route path.</p>';
+    else if (ui.wxBusy) html = '<p class="note">Asking weather.gov\u2026</p>';
+    else if (load.weather && load.weather.rows) {
+      html = '<ul class="list plain">' + load.weather.rows.map(function (r) {
+        if (r.error) return '<li>' + esc(r.where) + ': weather failed (' + esc(r.error) + ').</li>';
+        var pop = r.pop == null ? 'precip chance not given' : (r.pop + '% chance of precip');
+        return '<li><strong>' + esc(r.where) + '</strong>' + (r.name ? ' \u00b7 ' + esc(r.name) : '') + ': ' + esc(r.short || 'no summary') + '. ' + (r.temp == null ? '' : esc(String(r.temp)) + '\u00b0' + esc(r.unit || 'F') + '. ') + (r.wind ? 'Wind ' + esc(r.wind) + '. ' : '') + esc(pop) + '.</li>';
+      }).join('') + '</ul><p class="note">Live forecast from api.weather.gov for a few points on the path. Not a road-condition report.</p>';
+    } else html = '<p class="note">Weather needs a route.</p>';
+    if (ui.wxErr) html += '<p class="note neg">' + esc(ui.wxErr) + '</p>';
+    el.innerHTML = html;
+  }
+  function renderDims() {
+    var el = $('dimsOut'); if (!el) return;
+    var words = { ok: 'Legal', over: 'Over', unknown: 'Unknown', note: 'Check' };
+    var html = '<ul class="list">' + legalCheck().map(function (r) {
+      return '<li><span class="mark ' + r.level + '">' + words[r.level] + '</span> ' + esc(r.text) + '</li>';
+    }).join('') + '</ul>';
+    var pn = permitNotes();
+    if (pn) html += '<p class="note warn">' + esc(pn) + '</p>';
+    el.innerHTML = html;
+  }
+  function renderPoi() {
+    var el = $('poiOut'); if (!el) return;
+    var cov = '<p class="note">Verified lists only: FHWA WIM (pavement sensors), Idaho ITD ports of entry, CBP Mexican-border ports. Other states\u2019 open weigh stations were not in a dataset this build could fetch. No scale being open, and no permit, is claimed.</p>';
+    var has = POI && ((POI.wim && POI.wim.length) || (POI.id && POI.id.length) || (POI.cbp && POI.cbp.length));
+    if (!has) { el.innerHTML = '<p class="note">No verified port or scale list loaded.</p>'; return; }
+    if (lineOf().length < 2) { el.innerHTML = '<p class="note">Needs a route before these sites can be matched to the path.</p>' + cov; return; }
+    var m = matchPoi();
+    function list(title, rows, empty) {
+      var h = '<h3 class="label">' + esc(title) + '</h3>';
+      if (!rows.length) h += '<p class="note">' + esc(empty) + '</p>';
+      else h += '<ul class="list plain">' + rows.map(function (r) {
+        return '<li>Mile ' + intn(r.mi) + ' \u00b7 ' + esc(r.name) + (r.where ? ' \u00b7 ' + esc(r.where) : '') + ' \u00b7 ' + r.off.toFixed(1) + ' mi off</li>';
+      }).join('') + '</ul>';
+      return h;
+    }
+    el.innerHTML = list('Idaho ports of entry', m.id, 'None from the loaded list near this route.') + list('CBP Mexican-border ports', m.cbp, 'None from the loaded list near this route.') + list('FHWA weigh-in-motion sites', m.wim, 'None from the loaded list near this route.') + cov;
+  }
+  function renderWork() {
+    var el = $('workOut'); if (!el) return;
+    var pack = statesFor();
+    var html = '<p class="note">Not a live closure feed. Nothing below is a closure. Open the state 511 site and check construction yourself.</p>';
+    if (!pack.states.length) html += '<p class="note">No state on this load yet.</p>';
+    else {
+      if (pack.how === 'names') html += '<p class="note">States are read off the city names until a route names the path.</p>';
+      html += '<ul class="list plain">' + pack.states.map(function (st) {
+        var url = SITES[st];
+        if (!url) return '<li>' + esc(stName(st)) + ': No verified 511 link loaded.</li>';
+        return '<li><a class="maplink" target="_blank" rel="noopener" href="' + esc(url) + '">' + esc(stName(st)) + ' 511</a></li>';
+      }).join('') + '</ul>';
+    }
+    el.innerHTML = html;
+  }
+  function render() {
+    readFields();
+    var s = analyze();
+    renderHero(s);
+    renderMoney(s);
+    renderRoute();
+    renderFuel();
+    renderWeather();
+    renderDims();
+    renderPoi();
+    renderWork();
+    renderBoard();
+    var note = $('shotNote');
+    if (note && ui.ocrNote) note.textContent = ui.ocrNote;
+    var zone = $('dropZone');
+    if (zone) zone.classList.toggle('busy', !!ui.ocrBusy);
+  }
+
+  /* ---- load log (local only) ---- */
+  var LOG_STORE = 'haulSheetLoadLog_v1';
+  var loadLog = [];
+  var logPick = {};
+  var XLSX_JS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  var xlsxLoading = null;
+
+  function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+  function logSay(msg) { var el = $('logMsg'); if (el) el.textContent = msg || ''; }
+  function loadLogRead() {
+    try {
+      var raw = localStorage.getItem(LOG_STORE);
+      var arr = raw ? JSON.parse(raw) : [];
+      loadLog = Array.isArray(arr) ? arr.filter(function (r) { return r && r.id; }) : [];
+    } catch (e) { loadLog = []; }
+  }
+  function sharedEntry(raw) {
+    if (!raw || !raw.id) return null;
+    var saved = {
+      linehaul: load.linehaul, fsc: load.fsc, loaded: load.loaded, deadhead: load.deadhead,
+      accessorials: load.accessorials, bennett: load.bennett
+    };
+    var rate = raw.rate != null ? raw.rate : raw.linehaul;
+    var miles = raw.miles != null ? raw.miles : raw.loadedMiles;
+    var dh = raw.deadhead != null ? raw.deadhead : raw.deadheadMiles;
+    var fsc = num(raw.fsc);
+    load.linehaul = Math.max(0, num(rate));
+    load.loaded = Math.max(0, num(miles));
+    load.deadhead = Math.max(0, num(dh));
+    load.fsc = (fsc > 0 && fsc < 5) ? fsc : 0;
+    load.accessorials = Math.max(0, num(raw.tarp != null ? raw.tarp : raw.accessorials));
+    load.bennett = false;
+    var s = analyze();
+    var v = verdict(s);
+    load.linehaul = saved.linehaul;
+    load.fsc = saved.fsc;
+    load.loaded = saved.loaded;
+    load.deadhead = saved.deadhead;
+    load.accessorials = saved.accessorials;
+    load.bennett = saved.bennett;
+    var notes = [];
+    if (raw.broker) notes.push('Broker ' + String(raw.broker).trim());
+    if (raw.pickup) notes.push('Pickup ' + String(raw.pickup).trim());
+    if (raw.weight) notes.push(String(raw.weight).trim() + ' lb');
+    if (raw.notes) notes.push(String(raw.notes).trim());
+    return {
+      id: String(raw.id),
+      addedAt: raw.addedAt || new Date().toISOString(),
+      origin: String(raw.origin || '').trim(),
+      destination: String(raw.destination || '').trim(),
+      linehaul: s.linehaul,
+      fsc: s.fsc,
+      accessorials: s.accessorialTotal,
+      loadedMiles: s.loadedMiles,
+      deadheadMiles: s.deadheadMiles,
+      keepAfterCut: s.netRevenue,
+      ppm: keepPerMile(s.netRevenue, s.loadedMiles),
+      cutPct: s.feePct,
+      source: 'tracker',
+      worthTaking: v.worthTaking,
+      heroWord: v.word,
+      taken: false,
+      takenAt: '',
+      notes: notes.join(' · '),
+      equipment: String(raw.equipment || '').trim(),
+      weight: String(raw.weight || '').trim(),
+      pickup: String(raw.pickup || '').trim(),
+      broker: String(raw.broker || '').trim()
+    };
+  }
+
+  function openLogLoad(r) {
+    if (!r) return;
+    setInput('origin', r.origin || '');
+    setInput('destination', r.destination || '');
+    setInput('linehaul', num(r.linehaul) > 0 ? String(num(r.linehaul)) : '');
+    setInput('loaded', num(r.loadedMiles) > 0 ? String(Math.round(num(r.loadedMiles))) : '');
+    setInput('deadhead', num(r.deadheadMiles) > 0 ? String(Math.round(num(r.deadheadMiles))) : '');
+    if (r.equipment) setInput('equipment', r.equipment);
+    if (r.weight) setInput('weight', String(r.weight));
+    readFields();
+    render();
+    if (String(r.origin || '').trim() && String(r.destination || '').trim()) runRoute();
+  }
+  function pullSharedLoads() {
+    if (location.protocol === 'file:') return;
+    fetch('./shared-loads.json?t=' + Date.now(), { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) return [];
+      return res.json();
+    }).then(function (arr) {
+      var opened = null;
+      if (!Array.isArray(arr) || !arr.length) {
+        var originEl0 = $('origin');
+        if (!originEl0 || !String(originEl0.value || '').trim()) {
+          loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+        }
+        if (opened) openLogLoad(opened);
+        return;
+      }
+      var have = {};
+      loadLog.forEach(function (r) { if (r && r.id) have[r.id] = true; });
+      var added = 0;
+      for (var i = arr.length - 1; i >= 0; i--) {
+        var raw = arr[i];
+        if (!raw || !raw.id || have[String(raw.id)]) continue;
+        var entry = sharedEntry(raw);
+        if (!entry) continue;
+        loadLog.unshift(entry);
+        have[entry.id] = true;
+        added++;
+      }
+      var opened = null;
+      if (added) {
+        loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+        loadLogWrite();
+        renderLog();
+        logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
+      }
+      if (!opened) {
+        var originEl = $('origin');
+        var blank = !originEl || !String(originEl.value || '').trim();
+        if (blank) loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+      }
+      if (opened) openLogLoad(opened);
+    }).catch(function () {});
+  }
+  function loadLogWrite() {
+    try { localStorage.setItem(LOG_STORE, JSON.stringify(loadLog)); }
+    catch (e) { logSay('Could not save the log in this browser.'); }
+  }
+  function logDate(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return null;
+    return d;
+  }
+  function ymd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function monthStamp(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
+  function shortDate(iso) {
+    var d = logDate(iso);
+    if (!d) return '\u2014';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function keepPerMile(keep, miles) {
+    miles = num(miles);
+    if (!(miles > 0)) return null;
+    return num(keep) / miles;
+  }
+  function entryWhen(r) { return logDate(r && r.takenAt) || logDate(r && r.addedAt); }
+  function takenLoads() { return loadLog.filter(function (r) { return r && r.taken; }); }
+  function monthRange(start, end) {
+    var out = [];
+    var cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    var last = new Date(end.getFullYear(), end.getMonth(), 1);
+    var guard = 0;
+    while (cursor <= last && guard < 240) {
+      out.push(monthStamp(cursor));
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      guard++;
+    }
+    return out;
+  }
+  function sheetsForTaken(taken, now) {
+    var endCap = new Date(2026, 11, 1);
+    if (!taken.length) return { empty: true, names: [], byMonth: {} };
+    var byMonth = {};
+    var earliest = null, latest = null;
+    taken.forEach(function (r) {
+      var d = entryWhen(r) || now;
+      var key = monthStamp(d);
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(r);
+      if (!earliest || d < earliest) earliest = d;
+      if (!latest || d > latest) latest = d;
+    });
+    var start = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+    var end = new Date(endCap.getTime());
+    var latestMonth = new Date(latest.getFullYear(), latest.getMonth(), 1);
+    if (latestMonth > end) end = latestMonth;
+    if (start > end) end = new Date(start.getFullYear(), start.getMonth(), 1);
+    return { empty: false, names: monthRange(start, end), byMonth: byMonth };
+  }
+  function addCurrentLoad() {
+    readFields();
+    var s = analyze();
+    var v = verdict(s);
+    var noteEl = $('logNote');
+    if (!String(load.origin || '').trim() && !String(load.destination || '').trim() && !(s.linehaul > 0)) {
+      logSay('Nothing to log. Put in an origin, destination, or linehaul first.');
+      return;
+    }
+    var entry = {
+      id: 'ld_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      addedAt: new Date().toISOString(),
+      origin: String(load.origin || '').trim(),
+      destination: String(load.destination || '').trim(),
+      linehaul: s.linehaul,
+      fsc: s.fsc,
+      accessorials: s.accessorialTotal,
+      loadedMiles: s.loadedMiles,
+      deadheadMiles: s.deadheadMiles,
+      keepAfterCut: s.netRevenue,
+      ppm: keepPerMile(s.netRevenue, s.loadedMiles),
+      cutPct: load.bennett ? 0 : s.feePct,
+      source: load.bennett ? 'bennett' : 'lease',
+      worthTaking: v.worthTaking,
+      heroWord: v.word,
+      taken: false,
+      takenAt: '',
+      notes: noteEl ? String(noteEl.value || '').trim() : '',
+      equipment: String(load.equipment || '').trim()
+    };
+    loadLog.unshift(entry);
+    loadLogWrite();
+    if (noteEl) noteEl.value = '';
+    logSay('Added to the log. Check Taken if you haul it.');
+    renderLog();
+  }
+  function renderLog() {
+    var avg = $('logAvg');
+    var taken = takenLoads();
+    var keepSum = 0, mileSum = 0, lhSum = 0, n = taken.length;
+    taken.forEach(function (r) {
+      keepSum += num(r.keepAfterCut);
+      mileSum += num(r.loadedMiles);
+      lhSum += num(r.linehaul);
+    });
+    if (avg) {
+      var head = 'Avg keep $/mi on taken loads: ';
+      if (!n) avg.textContent = head + '\u2014 \u00b7 0 loads \u00b7 0 mi';
+      else if (!(mileSum > 0)) avg.textContent = head + '\u2014 \u00b7 ' + n + ' load' + (n === 1 ? '' : 's') + ' \u00b7 0 mi';
+      else avg.textContent = head + money(keepSum / mileSum) + ' \u00b7 ' + n + ' load' + (n === 1 ? '' : 's') + ' \u00b7 ' + intn(mileSum) + ' mi. Broker linehaul $/mi: ' + money(lhSum / mileSum) + '.';
+    }
+    var list = $('logList');
+    if (!list) return;
+    if (!loadLog.length) list.innerHTML = '<p class="note">No loads logged yet.</p>';
+    else list.innerHTML = loadLog.map(function (r) {
+      var lane = (r.origin || '\u2014') + ' \u2192 ' + (r.destination || '\u2014');
+      var mark = worthMark(r);
+      var cls = r.worthTaking === 'yes' ? 'yes' : r.worthTaking === 'maybe' ? 'maybe' : 'no';
+      var ppmTxt = !(num(r.loadedMiles) > 0) || r.ppm == null || !isFinite(Number(r.ppm)) ? '\u2014' : money(num(r.ppm)) + '/loaded mi';
+      var bits = ['Keep ' + money(num(r.keepAfterCut)), intn(num(r.loadedMiles)) + ' loaded mi', intn(num(r.deadheadMiles)) + ' deadhead', ppmTxt];
+      if (r.equipment) bits.push(r.equipment);
+      if (r.notes) bits.push(r.notes);
+      if (r.source === 'tracker') bits.push('From Tracker');
+      bits.push(r.source === 'bennett' ? 'Bennett' : ('Cut ' + num(r.cutPct) + '%'));
+      var laneHtml = '<div class="lane">' + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div>';
+      var metaHtml = '<p class="log-meta">' + esc(bits.join(' \u00b7 ')) + '</p>';
+      var mid = r.source === 'tracker'
+        ? '<button type="button" class="log-open" data-id="' + esc(r.id) + '">' + laneHtml + metaHtml + '</button>'
+        : '<div class="grow">' + laneHtml + '</div>';
+      return '<div class="log-row"><div class="top">' +
+        '<label class="log-inline"><input type="checkbox" class="log-pick" data-id="' + esc(r.id) + '"' + (logPick[r.id] ? ' checked' : '') + ' /><span class="sr">Select</span></label>' +
+        mid +
+        '<label class="log-inline taken"><input type="checkbox" class="log-taken" data-id="' + esc(r.id) + '"' + (r.taken ? ' checked' : '') + ' /><span>Taken</span></label>' +
+        '</div>' + (r.source === 'tracker' ? '' : metaHtml) + '</div>';
+    }).join('');
+    var all = $('logSelectAll');
+    if (all) {
+      var ids = loadLog.map(function (r) { return r.id; });
+      all.checked = ids.length > 0 && ids.every(function (id) { return !!logPick[id]; });
+      all.indeterminate = !all.checked && ids.some(function (id) { return !!logPick[id]; });
+    }
+    var del = $('btnLogDelete');
+    if (del) del.disabled = !loadLog.some(function (r) { return logPick[r.id]; });
+  }
+  function deleteSelected() {
+    var ids = loadLog.filter(function (r) { return logPick[r.id]; }).map(function (r) { return r.id; });
+    if (!ids.length) { logSay('Check the loads you want to delete.'); return; }
+    if (!window.confirm('Delete ' + ids.length + ' load' + (ids.length === 1 ? '' : 's') + ' from the log?')) return;
+    var drop = {};
+    ids.forEach(function (id) { drop[id] = true; delete logPick[id]; });
+    loadLog = loadLog.filter(function (r) { return !drop[r.id]; });
+    loadLogWrite();
+    logSay('Deleted ' + ids.length + '.');
+    renderLog();
+  }
+  function setTaken(id, on) {
+    var row = null;
+    loadLog.forEach(function (r) { if (r.id === id) row = r; });
+    if (!row) return;
+    row.taken = !!on;
+    row.takenAt = row.taken ? new Date().toISOString() : '';
+    loadLogWrite();
+    logSay(row.taken ? 'Marked taken.' : 'Cleared taken.');
+    renderLog();
+  }
+  function xlsxLoad() {
+    if (window.XLSX && window.XLSX.utils && window.XLSX.writeFile) return Promise.resolve();
+    if (!xlsxLoading) xlsxLoading = new Promise(function (res, rej) {
+      var sc = document.createElement('script');
+      sc.src = XLSX_JS;
+      sc.onload = function () { (window.XLSX && window.XLSX.utils) ? res() : rej(new Error('Excel script loaded but did not start.')); };
+      sc.onerror = function () { xlsxLoading = null; rej(new Error('Could not download the Excel tool. Check your internet and try again.')); };
+      document.head.appendChild(sc);
+    });
+    return xlsxLoading;
+  }
+  function exportTaken() {
+    var taken = takenLoads();
+    if (!taken.length) {
+      logSay('No taken loads. Check Taken on the ones you hauled. Nothing was exported.');
+      return;
+    }
+    var btn = $('btnLogExport');
+    if (btn) btn.disabled = true;
+    logSay('Building the Excel file\u2026');
+    xlsxLoad().then(function () {
+      var headers = ['Date taken', 'Origin', 'Destination', 'Linehaul', 'FSC', 'Accessorials', 'Keep after cut', 'Loaded miles', 'Deadhead', '$/loaded mi', 'Worth', 'Cut %'];
+      var plan = sheetsForTaken(taken, new Date());
+      var wb = window.XLSX.utils.book_new();
+      plan.names.forEach(function (key) {
+        var rows = [headers];
+        (plan.byMonth[key] || []).slice().sort(function (a, b) {
+          var da = entryWhen(a), db = entryWhen(b);
+          return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+        }).forEach(function (r) {
+          var d = entryWhen(r);
+          var miles = num(r.loadedMiles);
+          var ppm = (r.ppm == null || !isFinite(Number(r.ppm))) ? (miles > 0 ? num(r.keepAfterCut) / miles : '') : Number(r.ppm);
+          rows.push([
+            d ? ymd(d) : '',
+            r.origin || '',
+            r.destination || '',
+            num(r.linehaul),
+            num(r.fsc),
+            num(r.accessorials),
+            num(r.keepAfterCut),
+            miles,
+            num(r.deadheadMiles),
+            ppm === '' ? '' : Math.round(Number(ppm) * 100) / 100,
+            worthMark(r),
+            num(r.cutPct)
+          ]);
+        });
+        var ws = window.XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = headers.map(function (h) { return { wch: Math.max(12, String(h).length + 2) }; });
+        window.XLSX.utils.book_append_sheet(wb, ws, key);
+      });
+      window.XLSX.writeFile(wb, 'Haul-Sheet-taken.xlsx');
+      logSay('Downloaded Haul-Sheet-taken.xlsx. Sheets ' + plan.names[0] + ' through ' + plan.names[plan.names.length - 1] + '. Empty months are headers only.');
+    }).catch(function (e) {
+      logSay((e && e.message) || 'Could not build the Excel file.');
+    }).then(function () { if (btn) btn.disabled = false; });
+  }
+  function bindLoadLog() {
+    if ($('btnLogAdd')) $('btnLogAdd').addEventListener('click', addCurrentLoad);
+    if ($('btnLogDelete')) $('btnLogDelete').addEventListener('click', deleteSelected);
+    if ($('btnLogExport')) $('btnLogExport').addEventListener('click', exportTaken);
+    if ($('logSelectAll')) $('logSelectAll').addEventListener('change', function () {
+      var on = $('logSelectAll').checked;
+      loadLog.forEach(function (r) { if (on) logPick[r.id] = true; else delete logPick[r.id]; });
+      renderLog();
+    });
+    var list = $('logList');
+    if (list) list.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      var id = t.getAttribute('data-id');
+      if (!id) return;
+      if (t.classList && t.classList.contains('log-pick')) {
+        if (t.checked) logPick[id] = true; else delete logPick[id];
+        renderLog();
+        return;
+      }
+      if (t.classList && t.classList.contains('log-taken')) setTaken(id, t.checked);
+    });
+    list.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.log-open') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var row = null;
+      loadLog.forEach(function (r) { if (r.id === id) row = r; });
+      if (row) openLogLoad(row);
+    });
+  }
+
+  function bind() {
+    try { if ($('here-key')) $('here-key').value = localStorage.getItem(HERE_STORE) || ''; } catch (e) {}
+    if ($('here-key')) $('here-key').addEventListener('input', function () {
+      try { localStorage.setItem(HERE_STORE, $('here-key').value.trim()); } catch (e) {}
+      render();
+    });
+    try {
+      var savedRun = JSON.parse(localStorage.getItem('haulSheetRunRates') || '{}');
+      if ($('mpg') && savedRun.mpg) $('mpg').value = savedRun.mpg;
+      if ($('dieselGal') && savedRun.dieselGal) $('dieselGal').value = savedRun.dieselGal;
+      if ($('runCpm') && savedRun.runCpm) $('runCpm').value = savedRun.runCpm;
+    } catch (e) {}
+    ['origin','destination','linehaul','fsc','accessorials','cutPct','loaded','deadhead','width','height','length','weight','equipment','mpg','dieselGal','runCpm','target','startCity'].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      el.addEventListener('input', function () {
+        if (id === 'fsc') ui.typedFsc = String(el.value || '').trim() !== '';
+        if (id === 'accessorials') ui.typedTarp = String(el.value || '').trim() !== '';
+        if (id === 'mpg' || id === 'dieselGal' || id === 'runCpm') {
+          try { localStorage.setItem('haulSheetRunRates', JSON.stringify({ mpg: $('mpg') && $('mpg').value, dieselGal: $('dieselGal') && $('dieselGal').value, runCpm: $('runCpm') && $('runCpm').value })); } catch (e) {}
+        }
+        render();
+      });
+    });
+    if ($('srcLease')) $('srcLease').addEventListener('click', function () { setBennett(false); render(); });
+    if ($('srcBennett')) $('srcBennett').addEventListener('click', function () { setBennett(true); render(); });
+    if ($('btnRoute')) $('btnRoute').addEventListener('click', function () { runRoute(); });
+    if ($('btnFuel')) $('btnFuel').addEventListener('click', function () { hereFuel(); });
+    if ($('btnWx')) $('btnWx').addEventListener('click', function () { loadWeather(); });
+    bindLoadLog();
+
+    var zone = $('dropZone'), file = $('shotFile');
+    function takeFiles(files) {
+      var f = files && files[0]; if (!f) return;
+      if (!/^image\//.test(f.type) && !/\.(png|jpe?g|webp|gif)$/i.test(f.name || '')) {
+        ui.ocrNote = 'That file is not a picture. Drop a PNG or JPG screenshot of the load board.';
+        render(); return;
+      }
+      readScreenshot(f);
+    }
+    if (zone) {
+      zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('over'); });
+      zone.addEventListener('dragleave', function () { zone.classList.remove('over'); });
+      zone.addEventListener('drop', function (e) { e.preventDefault(); zone.classList.remove('over'); takeFiles(e.dataTransfer && e.dataTransfer.files); });
+    }
+    if (file) file.addEventListener('change', function () { takeFiles(file.files); });
+    window.addEventListener('paste', function (e) {
+      var items = e.clipboardData && e.clipboardData.items; if (!items) return;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf('image') === 0) { takeFiles([items[i].getAsFile()]); e.preventDefault(); break; }
+      }
+    });
+    window.addEventListener('dragover', function (e) { e.preventDefault(); });
+    window.addEventListener('drop', function (e) {
+      if (e.target && (e.target === zone || (zone && zone.contains(e.target)))) return;
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); takeFiles(e.dataTransfer.files); }
+    });
+  }
+
+
+  window.haulApplyOcrText = function (text) {
+    clearSampleNumbers();
+    var parsed = parseHaulOcrText(text);
+    parsed.text = String(text || '');
+    parsed.empty = !String(text || '').trim();
+    finishOcr(parsed);
+    return {
+      origin: $('origin') ? $('origin').value : '',
+      destination: $('destination') ? $('destination').value : '',
+      linehaul: $('linehaul') ? $('linehaul').value : '',
+      fsc: $('fsc') ? $('fsc').value : '',
+      accessorials: $('accessorials') ? $('accessorials').value : '',
+      loaded: $('loaded') ? $('loaded').value : '',
+      keep: $('keepAfterCut') ? $('keepAfterCut').textContent : '',
+      word: $('heroWord') ? $('heroWord').textContent : '',
+      note: ui.ocrNote,
+      board: (ui.boardLoads || []).length
+    };
+  };
+
+  loadLogRead();
+  pullSharedLoads();
+  setBennett(false);
+  bind();
+  render();
+  renderLog();
+})();
+
+</script>
+
+<script>
+if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(function(){}); }
+}
+</script>
+</body>
+</html>
