@@ -299,6 +299,9 @@
     <h2>Load log</h2>
     <p class="hint">Worth taking, Thin, and Pass match the big box. Taken is only the loads you actually haul. Saved in this browser only.</p>
     <label><span>Your note</span><textarea id="logNote" rows="2" placeholder="Why you passed on this load" autocomplete="off"></textarea></label>
+    <label><span>Note share URL (optional)</span><input id="noteSyncUrl" type="password" placeholder="Webhook URL" autocomplete="off" /></label>
+    <label><span>Note share header (optional)</span><input id="noteSyncAuth" type="password" placeholder="Authorization header" autocomplete="off" /></label>
+    <p class="hint">Paste these once so Tracker can read kick-out notes. They stay in this browser and are not put on the public site.</p>
     <button class="btn primary" type="button" id="btnLogAdd">Add current load to log</button>
     <button class="btn" type="button" id="btnLogExport">Export taken to Excel</button>
     <p class="note" id="logAvg">Avg keep $/mi on taken loads: — · 0 loads · 0 mi</p>
@@ -2343,6 +2346,56 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     try { localStorage.setItem('haulSheetOpenNote', JSON.stringify({ id: openLogId, text: String(text == null ? '' : text) })); }
     catch (e) {}
   }
+  var noteShareTimer = null;
+  var noteShareSentKey = '';
+  function noteShareSchedule() {
+    if (noteShareTimer) clearTimeout(noteShareTimer);
+    noteShareTimer = setTimeout(noteSharePost, 1500);
+  }
+  function noteSharePost() {
+    noteShareTimer = null;
+    var urlEl = $('noteSyncUrl');
+    var authEl = $('noteSyncAuth');
+    var url = urlEl ? String(urlEl.value || '').trim() : '';
+    var auth = authEl ? String(authEl.value || '') : '';
+    if (!url || !String(auth).trim() || !openLogId) return;
+    var noteEl = $('logNote');
+    var comment = noteEl ? String(noteEl.value || '') : '';
+    readFields();
+    var row = null;
+    loadLog.forEach(function (r) { if (r && r.id === openLogId) row = r; });
+    var origin = String(load.origin || '').trim();
+    var destination = String(load.destination || '').trim();
+    var rate = num(load.linehaul);
+    if (row && !origin && !destination) {
+      origin = String(row.origin || '').trim();
+      destination = String(row.destination || '').trim();
+      rate = num(row.linehaul);
+    }
+    var sentKey = String(openLogId) + '\n' + origin + '\n' + destination + '\n' + String(rate) + '\n' + comment;
+    if (sentKey === noteShareSentKey) return;
+    noteShareSentKey = sentKey;
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': auth },
+      body: JSON.stringify({
+        id: openLogId,
+        origin: origin,
+        destination: destination,
+        rate: rate,
+        comment: comment,
+        updatedAt: new Date().toISOString()
+      })
+    }).then(function (res) {
+      if (!res || !res.ok) {
+        if (noteShareSentKey === sentKey) noteShareSentKey = '';
+        logSay('Note was not shared.');
+      }
+    }, function () {
+      if (noteShareSentKey === sentKey) noteShareSentKey = '';
+      logSay('Note was not shared.');
+    });
+  }
   function onLogNoteInput() {
     var noteEl = $('logNote');
     var text = noteEl ? String(noteEl.value || '') : '';
@@ -2356,6 +2409,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       }
     }
     rememberOpenNote(text);
+    noteShareSchedule();
   }
   function restoreOpenNote() {
     try {
@@ -2653,7 +2707,10 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   }
   function bindLoadLog() {
     if ($('btnLogAdd')) $('btnLogAdd').addEventListener('click', addCurrentLoad);
-    if ($('logNote')) $('logNote').addEventListener('input', onLogNoteInput);
+    if ($('logNote')) {
+      $('logNote').addEventListener('input', onLogNoteInput);
+      $('logNote').addEventListener('blur', noteShareSchedule);
+    }
     if ($('btnLogDelete')) $('btnLogDelete').addEventListener('click', deleteSelected);
     if ($('btnLogExport')) $('btnLogExport').addEventListener('click', exportTaken);
     if ($('logSelectAll')) $('logSelectAll').addEventListener('change', function () {
@@ -2689,6 +2746,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if ($('here-key')) $('here-key').addEventListener('input', function () {
       try { localStorage.setItem(HERE_STORE, $('here-key').value.trim()); } catch (e) {}
       render();
+    });
+    try { if ($('noteSyncUrl')) $('noteSyncUrl').value = localStorage.getItem('haulSheetNoteSyncUrl') || ''; } catch (e) {}
+    try { if ($('noteSyncAuth')) $('noteSyncAuth').value = localStorage.getItem('haulSheetNoteSyncAuth') || ''; } catch (e) {}
+    if ($('noteSyncUrl')) $('noteSyncUrl').addEventListener('input', function () {
+      try { localStorage.setItem('haulSheetNoteSyncUrl', $('noteSyncUrl').value.trim()); } catch (e) {}
+    });
+    if ($('noteSyncAuth')) $('noteSyncAuth').addEventListener('input', function () {
+      try { localStorage.setItem('haulSheetNoteSyncAuth', $('noteSyncAuth').value); } catch (e) {}
     });
     try {
       var savedRun = JSON.parse(localStorage.getItem('haulSheetRunRates') || '{}');
