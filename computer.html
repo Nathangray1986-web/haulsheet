@@ -1165,19 +1165,65 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     for (var i = 0; i + 1 < a.length; i += 2) out.push([a[i], a[i + 1]]);
     return out;
   }
-  function hereRoads(sections) {
-    var segs = [];
-    (sections || []).forEach(function (sec) { (sec.spans || []).forEach(function (sp) {
-      var name = (sp.routeNumbers && sp.routeNumbers[0] && sp.routeNumbers[0].value) || '', last = segs[segs.length - 1];
-      if (last && last.name === name) last.m += sp.length || 0; else { last = { name: name, m: sp.length || 0, st: [] }; segs.push(last); }
-      if (sp.stateCode && last.st.indexOf(sp.stateCode) < 0) last.st.push(sp.stateCode);
-    }); });
+  function roadToken(entry) {
+    if (entry == null) return '';
+    if (typeof entry === 'string' || typeof entry === 'number') return String(entry).trim();
+    if (Array.isArray(entry)) {
+      var parts = [];
+      entry.forEach(function (x) {
+        var t = roadToken(x);
+        if (t) parts.push(t);
+      });
+      return parts.join(' / ');
+    }
+    if (typeof entry === 'object') {
+      var v = entry.value != null ? entry.value : entry.name;
+      return v == null ? '' : roadToken(v);
+    }
+    return '';
+  }
+  function spanRoadName(sp) {
+    var parts = [];
+    (sp && sp.routeNumbers || []).forEach(function (entry) {
+      var t = roadToken(entry);
+      if (t) parts.push(t);
+    });
+    return parts.join(' / ');
+  }
+  function formatRoadSegs(segs, minM) {
     var out = [];
-    segs.filter(function (x) { return x.name && x.m >= 8000; }).forEach(function (x) {
+    segs.filter(function (x) { return x.name && x.m >= minM; }).forEach(function (x) {
       var last = out[out.length - 1];
       if (last && last.name === x.name) { last.m += x.m; x.st.forEach(function (c) { if (last.st.indexOf(c) < 0) last.st.push(c); }); } else out.push(x);
     });
     return out.map(function (x) { return x.name + (x.st.length ? ' (' + x.st.join(', ') + ')' : '') + ' ' + Math.round(x.m / 1609.344) + ' mi'; }).join(', ');
+  }
+  function actionRoads(sections) {
+    var segs = [];
+    (sections || []).forEach(function (sec) {
+      var acts = (sec && (sec.actions || sec.turnByTurnActions)) || [];
+      acts.forEach(function (act) {
+        if (!act) return;
+        var road = act.currentRoad || {};
+        var name = roadToken(road.number);
+        if (!name) return;
+        var last = segs[segs.length - 1];
+        if (last && last.name === name) last.m += act.length || 0; else { last = { name: name, m: act.length || 0, st: [] }; segs.push(last); }
+        var st = normState(act.stateCode || road.stateCode || '');
+        if (st && last.st.indexOf(st) < 0) last.st.push(st);
+      });
+    });
+    return formatRoadSegs(segs, 1609.344);
+  }
+  function hereRoads(sections) {
+    var segs = [];
+    (sections || []).forEach(function (sec) { (sec.spans || []).forEach(function (sp) {
+      var name = spanRoadName(sp), last = segs[segs.length - 1];
+      if (last && last.name === name) last.m += sp.length || 0; else { last = { name: name, m: sp.length || 0, st: [] }; segs.push(last); }
+      if (sp.stateCode && last.st.indexOf(sp.stateCode) < 0) last.st.push(sp.stateCode);
+    }); });
+    var text = formatRoadSegs(segs, 8000);
+    return text || actionRoads(sections);
   }
   function normState(code) {
     var c = String(code || '');
@@ -1269,8 +1315,8 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var base = 'https://router.hereapi.com/v8/routes?transportMode=truck&origin=' + first.lat + ',' + first.lng + (pts[2] ? '&via=' + pts[0].lat + ',' + pts[0].lng : '') + '&destination=' + pts[1].lat + ',' + pts[1].lng +
         '&currency=USD&vehicle[height]=' + prof.cm.height + '&vehicle[width]=' + prof.cm.width + '&vehicle[length]=' + prof.cm.length + '&vehicle[grossWeight]=' + prof.kg +
         '&vehicle[axleCount]=5&vehicle[trailerCount]=1&apiKey=' + encodeURIComponent(key);
-      return hereJson(base + '&return=summary,tolls,polyline&spans=routeNumbers,length,stateCode').then(null, function () {
-        return hereJson(base + '&return=summary,tolls,polyline');
+      return hereJson(base + '&return=summary,tolls,polyline,actions&spans=routeNumbers,length,stateCode').then(null, function () {
+        return hereJson(base + '&return=summary,tolls,polyline,actions');
       });
     }).then(function (j) {
       var route = j.routes && j.routes[0];
@@ -1544,9 +1590,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       out.sort(function (a, b) { return a.mi - b.mi || a.off - b.off; });
       return out.slice(0, 25);
     }
+    var idStatic = (POI.id || []).filter(function (row) { return String(row[5] || '').indexOf('Static Scales') >= 0; });
     return {
-      wim: take(POI.wim, 8047, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: 'WIM ' + row[3], where: row[2] }; }),
-      id: take(POI.id, 19312, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: row[2], where: [row[3], row[4], row[5]].filter(Boolean).join(' \u00b7 ') }; }),
+      id: take(idStatic, 19312, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: row[2], where: [row[3], row[4], row[5]].filter(Boolean).join(' \u00b7 ') }; }),
       cbp: take(POI.cbp, 32187, function (row, g) { return { mi: Math.round(g.along / 1609.344), off: Math.round(g.d / 160.9344) / 10, name: row[2], where: [row[4], row[3]].filter(Boolean).join(' \u00b7 ') }; })
     };
   }
@@ -2141,6 +2187,36 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     var h = load.here, html = '';
     var o = place(load.origin), d = place(load.destination);
     var pts = lineOf(), showMap = pts.length >= 2;
+    function roadItems(roads) {
+      var items = [];
+      if (Array.isArray(roads)) {
+        roads.forEach(function (x) {
+          if (x == null) return;
+          var s = String(x).trim();
+          if (s) items.push(s);
+        });
+      } else if (typeof roads === 'string' && roads.trim()) {
+        var parts = roads.split(' mi, ');
+        parts.forEach(function (p, i) {
+          p = String(p).trim();
+          if (!p) return;
+          if (i < parts.length - 1) p += ' mi';
+          items.push(p);
+        });
+      }
+      return items;
+    }
+    function hwyList(title, roads) {
+      var items = roadItems(roads);
+      var block = '<p class="route"><strong>' + title + '</strong></p><ul class="hwy-list list plain">';
+      if (!items.length) block += '<li>No highway names on this route.</li>';
+      else items.forEach(function (it) { block += '<li>' + esc(it) + '</li>'; });
+      return block + '</ul>';
+    }
+    if (h) {
+      html += hwyList('Highways', h.roads);
+      if (h.deadRoads && (Array.isArray(h.deadRoads) ? h.deadRoads.length : String(h.deadRoads).trim())) html += hwyList('Empty highways', h.deadRoads);
+    }
     if (o && d) {
       html += '<p class="route"><a class="maplink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&amp;origin=' + encodeURIComponent(o) + '&amp;destination=' + encodeURIComponent(d) + '&amp;travelmode=driving">Open in Google Maps</a></p>';
       html += '<p class="note">Car directions, not a truck route.</p>';
@@ -2150,9 +2226,6 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       html += '<ul class="list plain">';
       html += '<li><strong>' + (truck ? 'Truck route: ' : 'Highway miles (not a truck route): ') + intn(h.miles) + ' mi</strong>, ' + hrs(h.minutes) + ', ' + esc(h.from) + ' \u2192 ' + esc(h.to) + '</li>';
       if (h.deadMiles != null) html += '<li>Empty: ' + intn(h.deadMiles) + ' mi, ' + hrs(h.deadMinutes) + (h.start ? ', from ' + esc(h.start) : '') + '</li>';
-      if (h.roads) html += '<li>Highways: ' + esc(h.roads) + '</li>';
-      else html += '<li>No highway names on this route.</li>';
-      if (h.deadRoads) html += '<li>Empty highways: ' + esc(h.deadRoads) + '</li>';
       if (truck) html += '<li>Tolls: ' + (h.tollPoints ? money(h.tolls) + ' at ' + h.tollPoints + ' point(s), lowest fare each' : 'None reported') + '</li>';
       if (h.profile) html += '<li>Profile: ' + esc(h.profile) + '</li>';
       (h.notices || []).forEach(function (n) { html += '<li class="neg">' + esc(n) + '</li>'; });
@@ -2221,8 +2294,8 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   }
   function renderPoi() {
     var el = $('poiOut'); if (!el) return;
-    var cov = '<p class="note">Verified lists only: FHWA WIM (pavement sensors), Idaho ITD ports of entry, CBP Mexican-border ports. Other states\u2019 open weigh stations were not in a dataset this build could fetch. No scale being open, and no permit, is claimed.</p>';
-    var has = POI && ((POI.wim && POI.wim.length) || (POI.id && POI.id.length) || (POI.cbp && POI.cbp.length));
+    var cov = '<p class="note">The list is Idaho static scales you can pull into, plus CBP Mexican-border ports. Other states\u2019 open weigh stations were not in a dataset this build could fetch. No scale being open is claimed.</p>';
+    var has = POI && ((POI.id && POI.id.length) || (POI.cbp && POI.cbp.length));
     if (!has) { el.innerHTML = '<p class="note">No verified port or scale list loaded.</p>'; return; }
     if (lineOf().length < 2) { el.innerHTML = '<p class="note">Needs a route before these sites can be matched to the path.</p>' + cov; return; }
     var m = matchPoi();
@@ -2234,7 +2307,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       }).join('') + '</ul>';
       return h;
     }
-    el.innerHTML = list('Idaho ports of entry', m.id, 'None from the loaded list near this route.') + list('CBP Mexican-border ports', m.cbp, 'None from the loaded list near this route.') + list('FHWA weigh-in-motion sites', m.wim, 'None from the loaded list near this route.') + cov;
+    el.innerHTML = list('Idaho ports of entry', m.id, 'None from the loaded list near this route.') + list('CBP Mexican-border ports', m.cbp, 'None from the loaded list near this route.') + cov;
   }
   function renderWork() {
     var el = $('workOut'); if (!el) return;
