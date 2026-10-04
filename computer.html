@@ -238,6 +238,7 @@
         <label><span>HERE API key (optional — stays in this browser only)</span><input id="here-key" type="password" placeholder="Paste key, or leave blank for highway miles" autocomplete="off" /></label>
         <p class="hint">With a key: truck routing like Load Desk. Without: public OSRM + Nominatim, labeled highway miles (not a truck route). Key is never hardcoded.</p>
         <button class="btn primary" type="button" id="btnRoute">Get route</button>
+        <div id="routeMap" hidden></div>
         <div id="routeOut"></div>
       </div>
       
@@ -1110,6 +1111,15 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
 
   /* ---- geo / HERE helpers ---- */
   var FP_TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function herePolyString(raw) {
+    if (typeof raw === 'string') return raw;
+    if (!raw || typeof raw !== 'object') return '';
+    var prefer = ['polyline', 'encodedPolyline', 'encoded', 'value'], i;
+    for (i = 0; i < prefer.length; i++) if (typeof raw[prefer[i]] === 'string') return raw[prefer[i]];
+    var keys = Object.keys(raw);
+    for (i = 0; i < keys.length; i++) if (typeof raw[keys[i]] === 'string') return raw[keys[i]];
+    return '';
+  }
   function hereDecode(str) {
     var vals = [], cur = 0, shift = 0;
     for (var i = 0; i < str.length; i++) {
@@ -1250,9 +1260,11 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var base = 'https://router.hereapi.com/v8/routes?transportMode=truck&origin=' + first.lat + ',' + first.lng + (pts[2] ? '&via=' + pts[0].lat + ',' + pts[0].lng : '') + '&destination=' + pts[1].lat + ',' + pts[1].lng +
         '&currency=USD&vehicle[height]=' + prof.cm.height + '&vehicle[width]=' + prof.cm.width + '&vehicle[length]=' + prof.cm.length + '&vehicle[grossWeight]=' + prof.kg +
         '&vehicle[axleCount]=5&vehicle[trailerCount]=1&apiKey=' + encodeURIComponent(key);
-      return Promise.all([hereJson(base + '&return=summary,tolls'), hereJson(base + '&return=polyline&spans=routeNumbers,length,stateCode').then(null, function () { return null; })]);
-    }).then(function (res) {
-      var j = res[0], route = j.routes && j.routes[0];
+      return hereJson(base + '&return=summary,tolls,polyline&spans=routeNumbers,length,stateCode').then(null, function () {
+        return hereJson(base + '&return=summary,tolls,polyline');
+      });
+    }).then(function (j) {
+      var route = j.routes && j.routes[0];
       if (!route) throw new Error((j.notices && j.notices[0] && j.notices[0].title) || 'HERE found no truck route between these places.');
       var sections = route.sections || [], sum = { dead: { m: 0, s: 0 }, load: { m: 0, s: 0 } }, tolls = 0, tollPoints = 0, notices = [];
       function note(n) { var t = n && (n.title || n.code); if (t && notices.indexOf(t) < 0) notices.push(t); }
@@ -1277,19 +1289,27 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
           if (low != null) { tolls += low; tollPoints++; }
         });
       });
-      var r2 = res[1] && res[1].routes && res[1].routes[0] ? res[1].routes[0].sections || [] : [], cut2 = splitAt(r2);
+      var path = [], polyBad = false, polyMiss = false;
+      sections.forEach(function (sec) {
+        var enc = herePolyString(sec && sec.polyline);
+        if (!enc) { polyMiss = true; return; }
+        var decoded = hereDecode(enc);
+        if (!decoded.length) polyBad = true;
+        else path = path.concat(decoded);
+      });
+      if (polyBad) note('HERE polyline did not decode.');
+      if (polyMiss) note('HERE returned no polyline.');
       load.here = {
         kind: 'truck', miles: Math.round(sum.load.m / 1609.344), minutes: Math.round(sum.load.s / 60),
         tolls: Math.round(tolls * 100) / 100, tollPoints: tollPoints,
-        roads: hereRoads(r2.slice(cut2)), from: found[0] || '', to: found[1] || '', notices: notices.slice(0, 12),
-        profile: prof.text, at: new Date().toISOString(), states: statesFrom(r2)
+        roads: hereRoads(sections.slice(cut)), from: found[0] || '', to: found[1] || '', notices: notices.slice(0, 12),
+        profile: prof.text, at: new Date().toISOString(), states: statesFrom(sections)
       };
       if (cut > 0) {
-        load.here.start = found[2]; load.here.deadMiles = Math.round(sum.dead.m / 1609.344); load.here.deadMinutes = Math.round(sum.dead.s / 60); load.here.deadRoads = hereRoads(r2.slice(0, cut2));
+        load.here.start = found[2]; load.here.deadMiles = Math.round(sum.dead.m / 1609.344); load.here.deadMinutes = Math.round(sum.dead.s / 60); load.here.deadRoads = hereRoads(sections.slice(0, cut));
         if (!num(load.deadhead)) { load.deadhead = load.here.deadMiles; var dh = $('deadhead'); if (dh) dh.value = String(load.deadhead); }
       }
       if (!num(load.loaded)) { load.loaded = load.here.miles; var lm = $('loaded'); if (lm) lm.value = String(load.loaded); }
-      var path = []; r2.forEach(function (sec) { if (sec.polyline) path = path.concat(hereDecode(sec.polyline)); });
       if (path.length > 1) { load.here.line = []; geoThin(path, 250).forEach(function (p) { load.here.line.push(Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5); }); }
       load.fuel = null; load.weather = null; load.routeKind = 'truck';
       ui.busy = false; ui.fuelErr = ''; ui.wxErr = '';
@@ -2034,7 +2054,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
     set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on the rate after fuel and extras'));
   }
-  var routeMap = null, routeMapSig = '';
+  var routeMap = null, routeLine = null, routeMapSig = '';
   function routeLineSig(pts) {
     if (!pts || pts.length < 2) return '';
     var a = pts[0], b = pts[pts.length - 1];
@@ -2043,35 +2063,42 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   function mountRouteMap(pts) {
     var box = document.getElementById('routeMap');
     if (!box || !pts || pts.length < 2) return;
-    var sig = routeLineSig(pts);
-    if (routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box) return;
-    if (routeMap) { try { routeMap.remove(); } catch (e0) {} routeMap = null; routeMapSig = ''; }
     if (typeof L === 'undefined' || !L || typeof L.map !== 'function') return;
+    var sig = routeLineSig(pts);
     try {
-      var map = L.map(box);
-      routeMap = map;
-      routeMapSig = sig;
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-      }).addTo(map);
-      var line = L.polyline(pts, { color: '#c45c26', weight: 5 }).addTo(map);
-      map.fitBounds(line.getBounds(), { padding: [16, 16] });
-      setTimeout(function () { try { if (routeMap === map) map.invalidateSize(); } catch (e2) {} }, 60);
-    } catch (e) {
-      if (routeMap) { try { routeMap.remove(); } catch (e3) {} }
-      routeMap = null; routeMapSig = '';
-    }
+      if (!routeMap || !routeMap.getContainer || routeMap.getContainer() !== box) {
+        var map = L.map(box);
+        routeMap = map;
+        routeLine = null;
+        routeMapSig = '';
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 20
+        }).addTo(map);
+      }
+      var map = routeMap;
+      if (routeMapSig !== sig || !routeLine) {
+        if (routeLine) { try { map.removeLayer(routeLine); } catch (e1) {} routeLine = null; }
+        routeLine = L.polyline(pts, { color: '#c45c26', weight: 5 }).addTo(map);
+        routeMapSig = sig;
+        map.fitBounds(routeLine.getBounds(), { padding: [16, 16] });
+      }
+      setTimeout(function () {
+        try {
+          if (routeMap === map && routeLine) {
+            map.invalidateSize();
+            map.fitBounds(routeLine.getBounds(), { padding: [16, 16] });
+          }
+        } catch (e2) {}
+      }, 60);
+    } catch (e) {}
   }
   function renderRoute() {
     var el = $('routeOut'); if (!el) return;
     var h = load.here, html = '';
     var o = place(load.origin), d = place(load.destination);
-    var pts = lineOf(), sig = routeLineSig(pts), showMap = pts.length >= 2;
-    var box = document.getElementById('routeMap');
-    var keepMap = !!(showMap && box && box.parentNode === el && routeMap && routeMapSig === sig && routeMap.getContainer && routeMap.getContainer() === box);
-    if (showMap && !keepMap) html += '<div id="routeMap"></div>';
+    var pts = lineOf(), showMap = pts.length >= 2;
     if (o && d) {
       html += '<p class="route"><a class="maplink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&amp;origin=' + encodeURIComponent(o) + '&amp;destination=' + encodeURIComponent(d) + '&amp;travelmode=driving">Open in Google Maps</a></p>';
       html += '<p class="note">Car directions, not a truck route.</p>';
@@ -2094,15 +2121,10 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     }
     if (ui.err) html += '<p class="note neg">' + esc(ui.err) + '</p>';
     if (ui.busy) html += '<p class="note">Getting route\u2026</p>';
-    if (!keepMap && routeMap) { try { routeMap.remove(); } catch (e1) {} routeMap = null; routeMapSig = ''; }
-    if (keepMap) {
-      el.removeChild(box);
-      el.innerHTML = html;
-      el.insertBefore(box, el.firstChild);
-    } else {
-      el.innerHTML = html;
-      if (showMap) mountRouteMap(pts);
-    }
+    el.innerHTML = html;
+    var box = document.getElementById('routeMap');
+    if (box) box.hidden = !showMap;
+    if (showMap) mountRouteMap(pts);
     var btn = $('btnRoute'); if (btn) { btn.disabled = !!ui.busy; btn.textContent = ui.busy ? 'Getting route\u2026' : (h ? 'Get route again' : 'Get route'); }
   }
   function renderFuel() {
