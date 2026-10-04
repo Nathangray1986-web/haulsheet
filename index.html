@@ -134,6 +134,11 @@
     .log-row .lane { font-weight: 700; }
     .log-row .when { margin-top: 0.15rem; color: var(--muted); font-size: 0.88rem; }
     .log-meta { color: var(--muted); font-size: 0.88rem; margin: 0.25rem 0 0 1.7rem; }
+    button.log-open {
+      display: block; flex: 1; min-width: 0; text-align: left; background: transparent; color: inherit;
+      border: 0; font: inherit; padding: 8px 4px; cursor: pointer; user-select: none; -webkit-user-select: none;
+    }
+    button.log-open .log-meta { margin-left: 0; }
     .log-row .mark { min-width: 7.2rem; }
     .mark.yes { background: rgba(61,214,140,0.2); color: var(--good); }
     .mark.maybe { background: rgba(245,197,66,0.2); color: var(--accent); }
@@ -2156,13 +2161,35 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       broker: String(raw.broker || '').trim()
     };
   }
+
+  function openLogLoad(r) {
+    if (!r) return;
+    setInput('origin', r.origin || '');
+    setInput('destination', r.destination || '');
+    setInput('linehaul', num(r.linehaul) > 0 ? String(num(r.linehaul)) : '');
+    setInput('loaded', num(r.loadedMiles) > 0 ? String(Math.round(num(r.loadedMiles))) : '');
+    setInput('deadhead', num(r.deadheadMiles) > 0 ? String(Math.round(num(r.deadheadMiles))) : '');
+    if (r.equipment) setInput('equipment', r.equipment);
+    if (r.weight) setInput('weight', String(r.weight));
+    readFields();
+    render();
+    if (String(r.origin || '').trim() && String(r.destination || '').trim()) runRoute();
+  }
   function pullSharedLoads() {
     if (location.protocol === 'file:') return;
     fetch('./shared-loads.json?t=' + Date.now(), { cache: 'no-store' }).then(function (res) {
       if (!res.ok) return [];
       return res.json();
     }).then(function (arr) {
-      if (!Array.isArray(arr) || !arr.length) return;
+      var opened = null;
+      if (!Array.isArray(arr) || !arr.length) {
+        var originEl0 = $('origin');
+        if (!originEl0 || !String(originEl0.value || '').trim()) {
+          loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+        }
+        if (opened) openLogLoad(opened);
+        return;
+      }
       var have = {};
       loadLog.forEach(function (r) { if (r && r.id) have[r.id] = true; });
       var added = 0;
@@ -2175,10 +2202,19 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         have[entry.id] = true;
         added++;
       }
-      if (!added) return;
-      loadLogWrite();
-      renderLog();
-      logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
+      var opened = null;
+      if (added) {
+        loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+        loadLogWrite();
+        renderLog();
+        logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
+      }
+      if (!opened) {
+        var originEl = $('origin');
+        var blank = !originEl || !String(originEl.value || '').trim();
+        if (blank) loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+      }
+      if (opened) openLogLoad(opened);
     }).catch(function () {});
   }
   function loadLogWrite() {
@@ -2300,11 +2336,16 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       if (r.notes) bits.push(r.notes);
       if (r.source === 'tracker') bits.push('From Tracker');
       bits.push(r.source === 'bennett' ? 'Bennett' : ('Cut ' + num(r.cutPct) + '%'));
+      var laneHtml = '<div class="lane">' + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div>';
+      var metaHtml = '<p class="log-meta">' + esc(bits.join(' \u00b7 ')) + '</p>';
+      var mid = r.source === 'tracker'
+        ? '<button type="button" class="log-open" data-id="' + esc(r.id) + '">' + laneHtml + metaHtml + '</button>'
+        : '<div class="grow">' + laneHtml + '</div>';
       return '<div class="log-row"><div class="top">' +
         '<label class="log-inline"><input type="checkbox" class="log-pick" data-id="' + esc(r.id) + '"' + (logPick[r.id] ? ' checked' : '') + ' /><span class="sr">Select</span></label>' +
-        '<div class="grow"><div class="lane">' + esc(lane) + '</div><div class="when">' + esc(shortDate(r.addedAt)) + ' <span class="mark ' + cls + '">' + esc(mark) + '</span></div></div>' +
+        mid +
         '<label class="log-inline taken"><input type="checkbox" class="log-taken" data-id="' + esc(r.id) + '"' + (r.taken ? ' checked' : '') + ' /><span>Taken</span></label>' +
-        '</div><p class="log-meta">' + esc(bits.join(' \u00b7 ')) + '</p></div>';
+        '</div>' + (r.source === 'tracker' ? '' : metaHtml) + '</div>';
     }).join('');
     var all = $('logSelectAll');
     if (all) {
@@ -2415,6 +2456,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         return;
       }
       if (t.classList && t.classList.contains('log-taken')) setTaken(id, t.checked);
+    });
+    list.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.log-open') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var row = null;
+      loadLog.forEach(function (r) { if (r.id === id) row = r; });
+      if (row) openLogLoad(row);
     });
   }
 

@@ -1,5 +1,5 @@
 /* Haul Sheet app shell. Bump CACHE to refresh installed copies. */
-var CACHE = 'haul-sheet-shell-v3';
+var CACHE = 'haul-sheet-shell-v4';
 var SHELL = [
   './',
   './index.html',
