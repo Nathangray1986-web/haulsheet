@@ -44,5 +44,391 @@
     "phone": "(801) 290-2741; office 800-643-1262",
     "contact": "Michael L.",
     "loadNumber": "651895759"
+  },
+  {
+    "id": "prsp-cypress-creek",
+    "broker": "Cypress Creek Energy",
+    "origin": "Wilson / Mississippi County, AR",
+    "destination": "Steel River Energy Center",
+    "pickup": "Groundbreaking Jul 14 2026; full project by 2029",
+    "notes": "Project. Not a load. Bennett not checked. HQ 5310 S. Alston Ave. Bldg. 300 Durham NC 27713. Freight: First Solar modules, PACO steel piles and racking, Nextpower trackers, US-assembled BESS."
+  },
+  {
+    "id": "prsp-moss",
+    "broker": "Moss & Associates LLC",
+    "origin": "Fort Lauderdale, FL",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 6363 NW 6th Way Fort Lauderdale FL 33309. No freight writeup."
+  },
+  {
+    "id": "prsp-first-solar",
+    "broker": "First Solar Inc.",
+    "origin": "Phoenix, AZ",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 4300 E Camelback Road Suite 220 Phoenix AZ 85018. No freight writeup."
+  },
+  {
+    "id": "prsp-paco",
+    "broker": "PACO Steel & Engineering Corp.",
+    "origin": "Rancho Dominguez, CA",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 19818 South Alameda Street Rancho Dominguez CA 90221. No freight writeup."
+  },
+  {
+    "id": "prsp-big-river",
+    "broker": "Big River Steel LLC",
+    "origin": "Osceola, AR",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 2027 East State Highway 198 Osceola AR 72370. No freight writeup."
+  },
+  {
+    "id": "prsp-nextpower",
+    "broker": "Nextpower Inc.",
+    "origin": "Fremont, CA",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 6200 Paseo Padre Pkwy Fremont CA 94555. Formerly NEXTracker. No freight writeup."
+  },
+  {
+    "id": "prsp-lg-vertech",
+    "broker": "LG Energy Solution Vertech Inc.",
+    "origin": "Westborough, MA",
+    "notes": "Project. Not a load. Bennett not checked. Address only: 155 Flanders Road Westborough MA 01581. No freight writeup."
+  },
+  {
+    "id": "prsp-orsted",
+    "broker": "Orsted U.S.",
+    "origin": "Roosevelt County, NM",
+    "destination": "Blackwater Solar (200 MW)",
+    "pickup": "Construction start announced Sep 30 2026; COD late 2027",
+    "notes": "Project. Not a load. Bennett not checked. Portales-Clovis. HQ 399 Boylston Street 12th floor Boston MA 02116. Freight: First Solar panels."
+  },
+  {
+    "id": "prsp-oci",
+    "broker": "OCI Energy",
+    "origin": "Wharton County, TX",
+    "destination": "SunRoper Solar (347 MWdc)",
+    "pickup": "Groundbreaking Sep 1 2026; operations Dec 2027",
+    "notes": "Project. Not a load. Bennett not checked. HQ 8000 IH-10 West Suite 1201 San Antonio TX 78230. Freight inferred. Shared writeup with Arava Power, kept as its own row."
+  },
+  {
+    "id": "prsp-arava",
+    "broker": "Arava Power",
+    "origin": "Wharton County, TX",
+    "destination": "SunRoper Solar (347 MWdc)",
+    "pickup": "Groundbreaking Sep 1 2026; operations Dec 2027",
+    "notes": "Project. Not a load. Bennett not checked. HQ 8 Maskit St. Hertzeliya, Israel. Freight inferred. Shared writeup with OCI Energy, kept as its own row."
+  },
+  {
+    "id": "prsp-kinder-morgan",
+    "broker": "Kinder Morgan",
+    "origin": "Katy area to Port Arthur, TX",
+    "destination": "Trident Intrastate Pipeline",
+    "pickup": "Phase 1 in service Q1 2027",
+    "notes": "Project. Not a load. Bennett not checked. About 219 miles. HQ 1001 Louisiana St. Suite 1000 Houston TX 77002. Freight: line pipe being strung."
+  },
+  {
+    "id": "prsp-targa",
+    "broker": "Targa Resources Corp.",
+    "origin": "Permian to Mont Belvieu, TX",
+    "destination": "Speedway NGL Pipeline",
+    "pickup": "Startup Q3 2027",
+    "notes": "Project. Not a load. Bennett not checked. About 500 miles. HQ 811 Louisiana Suite 2000 Houston TX 77002. Freight: pipe inferred."
+  },
+  {
+    "id": "prsp-meta",
+    "broker": "Meta Platforms Inc.",
+    "origin": "Richland Parish, LA",
+    "destination": "Hyperion data center",
+    "pickup": "Expansion announced Jul 13 2026",
+    "notes": "Project. Not a load. Bennett not checked. HQ 1 Meta Way Menlo Park CA 94025. Freight inferred."
+  },
+  {
+    "id": "prsp-amazon",
+    "broker": "Amazon Web Services Inc.",
+    "origin": "Boling, Wharton County, TX",
+    "destination": "Project Eagle",
+    "pickup": "Filing windows Aug 2026 into 2027",
+    "notes": "Project. Not a load. Bennett not checked. HQ 410 Terry Avenue North Seattle WA 98109. Freight inferred."
+  },
+  {
+    "id": "prsp-hyundai",
+    "broker": "Hyundai Steel America Inc.",
+    "origin": "Ascension Parish, LA",
+    "destination": "Louisiana EAF steel mill",
+    "pickup": "Launch Sep 4 2026; production 2029",
+    "notes": "Project. Not a load. Bennett not checked. Freight not stated. HQ 200 Team Member Lane Greenville AL 36037. Shared writeup with POSCO America, kept as its own row."
+  },
+  {
+    "id": "prsp-posco",
+    "broker": "POSCO America",
+    "origin": "Ascension Parish, LA",
+    "destination": "Louisiana EAF steel mill",
+    "pickup": "Launch Sep 4 2026; production 2029",
+    "notes": "Project. Not a load. Bennett not checked. Freight not stated. Address on file is Atlanta GA only, no street. Shared writeup with Hyundai, kept as its own row."
+  },
+  {
+    "id": "prsp-micron",
+    "broker": "Micron Technology Inc.",
+    "origin": "Clay, Onondaga County, NY",
+    "destination": "Megafab",
+    "pickup": "First concrete Jul 9 2026",
+    "notes": "Project. Not a load. Bennett not checked. Freight not stated. HQ 8000 S Federal Way Boise ID 83716."
+  },
+  {
+    "id": "prsp-disney-concerts",
+    "broker": "Disney Concerts",
+    "origin": "Burbank, CA",
+    "notes": "Event company. Not a load. Bennett not checked. Address 500 South Buena Vista Street Burbank CA 91521."
+  },
+  {
+    "id": "prsp-aeg",
+    "broker": "AEG Presents",
+    "notes": "Event company. Not a load. Bennett not checked. Address not public."
+  },
+  {
+    "id": "prsp-diversified-production",
+    "broker": "Diversified Production Services",
+    "notes": "Event company. Not a load. Bennett not checked. Address not public. Not the same company as Diversified Communications (WorkBoat)."
+  },
+  {
+    "id": "prsp-mannheim-co",
+    "broker": "Mannheim Steamroller / American Gramaphone",
+    "origin": "Omaha, NE",
+    "notes": "Event company. Not a load. Bennett not checked. Address 9130 Mormon Bridge Rd Omaha NE 68152."
+  },
+  {
+    "id": "prsp-cirque-co",
+    "broker": "Cirque Musica",
+    "notes": "Event company. Not a load. Bennett not checked. Address not public."
+  },
+  {
+    "id": "prsp-cte",
+    "broker": "CTE Agency",
+    "notes": "Event company. Not a load. Bennett not checked. Address not public."
+  },
+  {
+    "id": "prsp-sema-co",
+    "broker": "SEMA",
+    "origin": "Diamond Bar, CA",
+    "notes": "Event company. Not a load. Bennett not checked. Address 1575 S. Valley Vista Drive Diamond Bar CA 91765."
+  },
+  {
+    "id": "prsp-freeman",
+    "broker": "Freeman",
+    "origin": "Dallas, TX",
+    "notes": "Event company. Not a load. Bennett not checked. Address 14221 Dallas Pkwy #200 Dallas TX 75254."
+  },
+  {
+    "id": "prsp-autocare",
+    "broker": "Auto Care Association (AAPEX)",
+    "origin": "Bethesda, MD",
+    "notes": "Event company. Not a load. Bennett not checked. Address 2 Bethesda Metro Center Suite 440 Bethesda MD 20814."
+  },
+  {
+    "id": "prsp-workboat-co",
+    "broker": "Diversified Communications (WorkBoat)",
+    "origin": "Portland, ME",
+    "notes": "Event company. Not a load. Bennett not checked. Portland ME only, no street address. Not Diversified Production Services."
+  },
+  {
+    "id": "prsp-questex",
+    "broker": "Questex (LDI)",
+    "origin": "Dover, DE",
+    "notes": "Event company. Not a load. Bennett not checked. Address 1111B S Governors Ave STE 25792 Dover DE 19904."
+  },
+  {
+    "id": "prsp-robbins",
+    "broker": "Robbins Research International Inc.",
+    "origin": "San Diego, CA",
+    "notes": "Event company. Not a load. Bennett not checked. Address 9051 Mira Mesa Blvd P.O. Box 261229 San Diego CA 92196."
+  },
+  {
+    "id": "prsp-worlds-collide",
+    "broker": "Disney / AEG",
+    "origin": "Multi-city US arenas",
+    "destination": "Worlds Collide tour",
+    "pickup": "Oct 4\u2013Dec 4, 2026",
+    "contact": "Lillian Matulic; John Tellem",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Freight contact not posted. Email Lillian.matulic@disney.com; john@tellemgrodypr.com. Cities include Sacramento, Portland, Tacoma, Chicago, Boston, Nashville, Houston, Austin. AEG arena tour, about 48 arenas. Disney Concerts and AEG Presents stay separate company rows."
+  },
+  {
+    "id": "prsp-stirling",
+    "broker": "Lindsey Stirling",
+    "origin": "25 US cities, opens Hollywood FL",
+    "destination": "Snow Waltz Holiday Tour",
+    "pickup": "Nov 18\u2013Dec 23, 2026",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Contact not posted. Violin, dance, aerial acrobatics, theatrical production. No CSV company row."
+  },
+  {
+    "id": "prsp-jingle-ball",
+    "broker": "iHeartRadio",
+    "origin": "Nine US arenas",
+    "destination": "Jingle Ball Tour",
+    "pickup": "Dec 1\u201317, 2026",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Named freight contact not posted. Produced with Diversified Production Services. Cities: Dallas/Fort Worth, Los Angeles, Chicago, Detroit, New York, Boston, Washington DC, Philadelphia, Nashville."
+  },
+  {
+    "id": "prsp-mannheim-tour",
+    "broker": "Mannheim Steamroller",
+    "origin": "Nationwide US",
+    "destination": "Christmas Tour",
+    "pickup": "Nov 11\u2013Dec 30, 2026",
+    "phone": "402-457-4341",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Email mailbox@mannheimsteamroller.com. Address 9130 Mormon Bridge Rd, Omaha NE 68152. Two ensembles, theaters and some arenas, about 7 weeks. Company row is separate."
+  },
+  {
+    "id": "prsp-cirque-tour",
+    "broker": "Cirque Musica",
+    "origin": "Multi-city US",
+    "destination": "Holiday Wonderland Tour 2026",
+    "pickup": "From Nov 15, 2026 through late December",
+    "contact": "Matt Charkow",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Email info@cirquemusica.com; mcharkow@cteagency.com; nina@ronstadtpr.com. Some date rows have no city. Cirque Musica and CTE Agency stay separate company rows."
+  },
+  {
+    "id": "prsp-sema-show",
+    "broker": "SEMA",
+    "origin": "Las Vegas, NV",
+    "destination": "SEMA Show 2026",
+    "pickup": "Nov 3\u20136, 2026. Show-site freight from Oct 29. Advance warehouse Sept 29\u2013Oct 22.",
+    "contact": "Shannon Allen",
+    "phone": "909.396.0289",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Email semashow@sema.org; shannon.allen@freeman.com; lorrim@sema.org. Phone is the SEMA show line. Freeman is the official freight contractor. Las Vegas Convention Center. Freeman stays its own company row."
+  },
+  {
+    "id": "prsp-aapex-show",
+    "broker": "AAPEX",
+    "origin": "Las Vegas, NV",
+    "destination": "AAPEX 2026",
+    "pickup": "Nov 3\u20135, 2026. Direct-to-dock Oct 29\u2013Nov 2.",
+    "contact": "Kelly Denman",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Email info@aapexshow.com; kelly@aapexshow.com; media.relations@aapexshow.com. Venetian Expo and AAPEX Forum. Exhibit freight. Same week as SEMA. CSV company is Auto Care Association (AAPEX)."
+  },
+  {
+    "id": "prsp-workboat-show",
+    "broker": "International WorkBoat Show",
+    "origin": "New Orleans, LA",
+    "destination": "International WorkBoat Show 2026",
+    "pickup": "Dec 2\u20134, 2026. Advance warehouse Oct 22\u2013Nov 19. Direct freight from Nov 28.",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Named freight person not posted. Operated by Diversified Communications. Ernest N. Morial Convention Center. CSV company is Diversified Communications (WorkBoat)."
+  },
+  {
+    "id": "prsp-ldi-show",
+    "broker": "LDI Show",
+    "origin": "Las Vegas, NV",
+    "destination": "LDI Show 2026",
+    "pickup": "Pro training Dec 2\u20138, 2026. Expo Dec 6\u20138, 2026.",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Named freight contact not posted. Lighting, staging, truss, rigging, audio, and projection gear. Las Vegas Convention Center West Hall. CSV company is Questex (LDI)."
+  },
+  {
+    "id": "prsp-tony",
+    "broker": "Tony Robbins",
+    "origin": "Miami, FL",
+    "destination": "Unleash the Power Within",
+    "pickup": "Nov 5\u20138, 2026",
+    "phone": "858-290-4113",
+    "contact": "Team (sales, not freight)",
+    "notes": "Event show. Not a load. Bennett not checked. Not contacted. Also 1-800-379-2042. Those phones are sales, not freight. Venue phone (786) 777-1000. Kaseya Center, 601 Biscayne Blvd. CSV company is Robbins Research International Inc."
+  },
+  {
+    "id": "prsp-muscanell",
+    "broker": "Muscanell",
+    "origin": "Cortez",
+    "destination": "Lumber and flooring",
+    "contact": "info@muscanell.com",
+    "notes": "Cortez pitch. Not a load. Nothing sent. TMS not checked. Email info@muscanell.com. Lumber into the Cortez mill or flooring out. Subject was Cortez lumber and flooring."
+  },
+  {
+    "id": "prsp-american-equipment",
+    "broker": "American Equipment",
+    "origin": "Farmington",
+    "destination": "Tanks or separators",
+    "contact": "cla@aem-1.com",
+    "notes": "Cortez pitch. Not a load. Nothing sent. TMS not checked. Email cla@aem-1.com. Subject was Farmington tanks."
+  },
+  {
+    "id": "prsp-ute-mountain",
+    "broker": "Ute Mountain",
+    "origin": "Towaoc",
+    "destination": "Alfalfa or hay",
+    "contact": "Simon",
+    "notes": "Cortez pitch. Not a load. Nothing sent. TMS not checked. Email simon@utemtn.com. Subject was Hay out of Towaoc."
+  },
+  {
+    "id": "prsp-choice",
+    "broker": "Choice",
+    "origin": "Cortez",
+    "destination": "Building materials",
+    "contact": "Tammy",
+    "notes": "Cortez pitch. Not a load. Nothing sent. TMS not checked. Email tblack@choicebuildingsupply.com. Subject was Cortez building materials."
+  },
+  {
+    "id": "prsp-bldr-cortez",
+    "broker": "Builders FirstSource Cortez",
+    "origin": "Cortez",
+    "destination": "Inbound lumber",
+    "notes": "Cortez pitch. Not a load. Nothing sent. TMS not checked. Email cortezsales@bldr.com. Inbound lumber only. A draft is with Alyssa at wyssasu00@yahoo.com for a proofread."
+  },
+  {
+    "id": "prsp-kloeckner",
+    "broker": "Kloeckner Metals",
+    "origin": "Alpharetta, GA",
+    "notes": "Shipper. Not a load. Bennett status: taken. Do not pitch."
+  },
+  {
+    "id": "prsp-oneal",
+    "broker": "O'Neal Steel",
+    "origin": "Birmingham, AL",
+    "notes": "Shipper. Not a load. Bennett status: fair game."
+  },
+  {
+    "id": "prsp-mill-steel",
+    "broker": "Mill Steel",
+    "origin": "Grand Rapids, MI",
+    "notes": "Shipper. Not a load. Bennett status: fair game."
+  },
+  {
+    "id": "prsp-olympic",
+    "broker": "Olympic Steel",
+    "origin": "Cleveland, OH",
+    "notes": "Shipper. Not a load. On hold until credit check Monday Oct 5, 2026. Ryerson bought them Feb 13, 2026."
+  },
+  {
+    "id": "prsp-vermeer",
+    "broker": "Vermeer",
+    "origin": "Pella, IA",
+    "notes": "Shipper. Not a load. On hold, no date. Do not pitch until Nate says otherwise."
+  },
+  {
+    "id": "prsp-altec",
+    "broker": "Altec",
+    "origin": "Birmingham, AL",
+    "notes": "Shipper. Not a load. Bennett status: not checked. Credit check is with the Monday Oct 5, 2026 Olympic check. Do not pitch until then."
+  },
+  {
+    "id": "prsp-zekelman",
+    "broker": "Zekelman Industries",
+    "origin": "Chicago, IL",
+    "notes": "Shipper. Not a load. Bennett status: fair game as of Oct 3."
+  },
+  {
+    "id": "prsp-boise-cascade",
+    "broker": "Boise Cascade",
+    "origin": "Boise, ID",
+    "notes": "Shipper. Not a load. Bennett status: fair game as of Oct 3."
+  },
+  {
+    "id": "prsp-lp",
+    "broker": "LP Building Solutions",
+    "origin": "Nashville, TN",
+    "notes": "Shipper. Not a load. Bennett status: fair game as of Oct 3."
+  },
+  {
+    "id": "prsp-gaf",
+    "broker": "GAF",
+    "origin": "Parsippany, NJ",
+    "notes": "Shipper. Not a load. Bennett status: fair game as of Oct 3. Headquarters. New York TMS rows are one bill-to via Technical Traffic Consultants, not a plant."
+  },
+  {
+    "id": "prsp-wl-plastics",
+    "broker": "WL Plastics",
+    "origin": "Fort Worth, TX",
+    "phone": "682-831-2700",
+    "notes": "Shipper. Not a load. Bennett status: fair game. HQ 3575 Lone Star Circle Suite 300, Fort Worth TX 76177. Plants 2075 N Pyrite Road, Mills WY 82644 and 4660 W Highway 56, Cedar City UT 84720. Email wlsales@wlplastics.com. Cold intro scheduled Tuesday Oct 6 8:53 AM MT. Do not mention prior hauls."
   }
 ]
