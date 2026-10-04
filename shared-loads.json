@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "trk-20261005-gj-baltimore",
+    "origin": "Grand Junction, CO",
+    "destination": "Baltimore, MD",
+    "rate": 4800,
+    "miles": 1908,
+    "deadhead": 196,
+    "weight": 20000,
+    "equipment": "Flatbed",
+    "pickup": "2026-10-05",
+    "broker": "SET LOGISTICS INC"
+  },
+  {
+    "id": "trk-20261007-santaquin-anoka",
+    "origin": "Santaquin, UT",
+    "destination": "Anoka, MN",
+    "rate": 3900,
+    "miles": 1368,
+    "deadhead": 315,
+    "weight": 37600,
+    "equipment": "Flatbed",
+    "pickup": "2026-10-07",
+    "broker": "A-1 FREIGHT SYSTEMS"
+  },
+  {
+    "id": "trk-20261006-tooele-fortworth",
+    "origin": "Tooele, UT",
+    "destination": "Fort Worth, TX",
+    "rate": 3200,
+    "miles": 1260,
+    "deadhead": 383,
+    "weight": 7372,
+    "equipment": "Step deck",
+    "pickup": "2026-10-06",
+    "broker": "MERCER TRANSPORTATION"
+  }
+]
