@@ -1,5 +1,5 @@
 /* Haul Sheet app shell. Bump CACHE to refresh installed copies. */
-var CACHE = 'haul-sheet-shell-v2';
+var CACHE = 'haul-sheet-shell-v3';
 var SHELL = [
   './',
   './index.html',
@@ -36,6 +36,10 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   var req = event.request;
   if (req.method !== 'GET') return;
+  if (req.url.indexOf('shared-loads.json') !== -1) {
+    event.respondWith(fetch(req, { cache: 'no-store' }));
+    return;
+  }
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).then(function (res) {

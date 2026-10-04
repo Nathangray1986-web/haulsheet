@@ -2102,6 +2102,85 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       loadLog = Array.isArray(arr) ? arr.filter(function (r) { return r && r.id; }) : [];
     } catch (e) { loadLog = []; }
   }
+  function sharedEntry(raw) {
+    if (!raw || !raw.id) return null;
+    var saved = {
+      linehaul: load.linehaul, fsc: load.fsc, loaded: load.loaded, deadhead: load.deadhead,
+      accessorials: load.accessorials, bennett: load.bennett
+    };
+    var rate = raw.rate != null ? raw.rate : raw.linehaul;
+    var miles = raw.miles != null ? raw.miles : raw.loadedMiles;
+    var dh = raw.deadhead != null ? raw.deadhead : raw.deadheadMiles;
+    var fsc = num(raw.fsc);
+    load.linehaul = Math.max(0, num(rate));
+    load.loaded = Math.max(0, num(miles));
+    load.deadhead = Math.max(0, num(dh));
+    load.fsc = (fsc > 0 && fsc < 5) ? fsc : 0;
+    load.accessorials = Math.max(0, num(raw.tarp != null ? raw.tarp : raw.accessorials));
+    load.bennett = false;
+    var s = analyze();
+    var v = verdict(s);
+    load.linehaul = saved.linehaul;
+    load.fsc = saved.fsc;
+    load.loaded = saved.loaded;
+    load.deadhead = saved.deadhead;
+    load.accessorials = saved.accessorials;
+    load.bennett = saved.bennett;
+    var notes = [];
+    if (raw.broker) notes.push('Broker ' + String(raw.broker).trim());
+    if (raw.pickup) notes.push('Pickup ' + String(raw.pickup).trim());
+    if (raw.weight) notes.push(String(raw.weight).trim() + ' lb');
+    if (raw.notes) notes.push(String(raw.notes).trim());
+    return {
+      id: String(raw.id),
+      addedAt: raw.addedAt || new Date().toISOString(),
+      origin: String(raw.origin || '').trim(),
+      destination: String(raw.destination || '').trim(),
+      linehaul: s.linehaul,
+      fsc: s.fsc,
+      accessorials: s.accessorialTotal,
+      loadedMiles: s.loadedMiles,
+      deadheadMiles: s.deadheadMiles,
+      keepAfterCut: s.netRevenue,
+      ppm: keepPerMile(s.netRevenue, s.loadedMiles),
+      cutPct: s.feePct,
+      source: 'tracker',
+      worthTaking: v.worthTaking,
+      heroWord: v.word,
+      taken: false,
+      takenAt: '',
+      notes: notes.join(' · '),
+      equipment: String(raw.equipment || '').trim(),
+      weight: String(raw.weight || '').trim(),
+      pickup: String(raw.pickup || '').trim(),
+      broker: String(raw.broker || '').trim()
+    };
+  }
+  function pullSharedLoads() {
+    if (location.protocol === 'file:') return;
+    fetch('./shared-loads.json?t=' + Date.now(), { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) return [];
+      return res.json();
+    }).then(function (arr) {
+      if (!Array.isArray(arr) || !arr.length) return;
+      var have = {};
+      loadLog.forEach(function (r) { if (r && r.id) have[r.id] = true; });
+      var added = 0;
+      for (var i = arr.length - 1; i >= 0; i--) {
+        var raw = arr[i];
+        if (!raw || !raw.id || have[String(raw.id)]) continue;
+        var entry = sharedEntry(raw);
+        if (!entry) continue;
+        loadLog.unshift(entry);
+        have[entry.id] = true;
+        added++;
+      }
+      if (!added) return;
+      loadLogWrite();
+      renderLog();
+      logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
+    }).catch(function () {});
+  }
   function loadLogWrite() {
     try { localStorage.setItem(LOG_STORE, JSON.stringify(loadLog)); }
     catch (e) { logSay('Could not save the log in this browser.'); }
@@ -2219,6 +2298,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var bits = ['Keep ' + money(num(r.keepAfterCut)), intn(num(r.loadedMiles)) + ' loaded mi', intn(num(r.deadheadMiles)) + ' deadhead', ppmTxt];
       if (r.equipment) bits.push(r.equipment);
       if (r.notes) bits.push(r.notes);
+      if (r.source === 'tracker') bits.push('From Tracker');
       bits.push(r.source === 'bennett' ? 'Bennett' : ('Cut ' + num(r.cutPct) + '%'));
       return '<div class="log-row"><div class="top">' +
         '<label class="log-inline"><input type="checkbox" class="log-pick" data-id="' + esc(r.id) + '"' + (logPick[r.id] ? ' checked' : '') + ' /><span class="sr">Select</span></label>' +
@@ -2480,6 +2560,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   };
 
   loadLogRead();
+  pullSharedLoads();
   setBennett(false);
   bind();
   render();
