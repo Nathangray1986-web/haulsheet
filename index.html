@@ -4,8 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Haul Sheet" />
   <meta name="theme-color" content="#0f1419" />
-  <title>Haul Sheet — Phone</title>
+  <title>Haul Sheet</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <style>
     :root {
       --bg: #0f1419; --surface: #1a222c; --raised: #243040; --line: #334155;
@@ -2483,5 +2488,10 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
 
 </script>
 
+<script>
+if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(function(){}); }
+}
+</script>
 </body>
 </html>
