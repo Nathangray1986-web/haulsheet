@@ -526,8 +526,11 @@ function ocrParseTsDetail(lines, words) {
   var all = lines.map(function (l) { return l.text; }).join('\n');
   if (!/Posted Rate/i.test(all) || !/Equipment/i.test(all)) return [];
   var post = words.filter(function (w) { return /^POSTING$/i.test(w.t); })[0], intn = words.filter(function (w) { return /^INTERNAL$/i.test(w.t); })[0];
+  var originW = words.filter(function (w) { return /^Origin$/i.test(w.t); })[0];
   var maxX = 0; words.forEach(function (w) { maxX = Math.max(maxX, w.x + w.w); });
-  var cut = post ? post.x - post.h : maxX * 0.24;
+  /* POSTING COMPANY under the cities is the same column on a phone. Only cut a side column when POSTING sits clearly to the right of Origin. */
+  var side = !!(post && originW && post.x > originW.x + Math.max(originW.w || 0, 40) + 24);
+  var cut = side ? (post.x - (post.h || 8)) : (maxX + 1);
   var left = ocrLines(words.filter(function (w) { return w.x + w.w / 2 < cut; })), text = left.map(function (l) { return l.text; }).join('\n');
   function g(re, n) { var m = text.match(re); return m ? String(m[n || 1]).trim() : ''; }
   var L = ocrBlankLoad();
@@ -542,14 +545,26 @@ function ocrParseTsDetail(lines, words) {
     var milesAll = all.match(/\bMiles\s*([\d,]+)/i);
     if (milesAll) L.miles = ocrNum(milesAll[1]);
   }
+  function placeOnLine(raw) {
+    var t = String(raw || '').replace(/,/g, ', ').replace(/\s+/g, ' ').trim();
+    var m = t.match(/([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\b(?:\s*(\d{5}))?/);
+    if (m && ocrIsState(m[2])) return m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2] + (m[3] ? ' ' + m[3] : '');
+    m = t.match(/([A-Za-z][A-Za-z .'\-]{1,40}?)\s+([A-Z]{2})\s+(\d{5})\b/);
+    if (m && ocrIsState(m[2])) return m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2] + ' ' + m[3];
+    return '';
+  }
   function cityAfter(label, pool) {
     pool = pool || left;
     var i = -1;
     pool.forEach(function (l, n) { if (i < 0 && new RegExp('^\\W*' + label + '\\b', 'i').test(l.text)) i = n; });
     if (i < 0) pool.forEach(function (l, n) { if (i < 0 && new RegExp('\\b' + label + '\\b', 'i').test(l.text)) i = n; });
-    for (var n = i < 0 ? pool.length : i; n < Math.min(pool.length, (i < 0 ? pool.length : i + 6)); n++) {
-      var m = pool[n].text.match(/([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\s*(\d{5})?/);
-      if (m && ocrIsState(m[2])) return m[1].trim() + ', ' + m[2] + (m[3] ? ' ' + m[3] : '');
+    if (i < 0) return '';
+    for (var n = i; n < Math.min(pool.length, i + 6); n++) {
+      if (n > i && /^POSTING\b/i.test(pool[n].text)) break;
+      var line = pool[n].text;
+      if (n === i) line = line.replace(new RegExp('^\\W*' + label + '\\b', 'i'), '');
+      var hit = placeOnLine(line);
+      if (hit) return hit;
     }
     return '';
   }
