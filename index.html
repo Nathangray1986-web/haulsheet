@@ -160,6 +160,12 @@
     h1 { font-size: 1.6rem; }
     .row2, .row3 { grid-template-columns: 1fr 1fr; }
     @media (max-width: 380px) { .row2, .row3, .toggles { grid-template-columns: 1fr; } }
+    .broker-block {
+      background: #12324a; color: #e7f6ff; border: 1px solid #3d7ea6;
+      border-radius: 0.6rem; padding: 0.55rem 0.75rem; margin: 0.45rem 0;
+      font-weight: 600; list-style: none;
+    }
+    .broker-block a { color: #9ee7ff; }
     #routeMap { height: 240px; width: 100%; border-radius: 0.85rem; margin: 0 0 0.75rem; overflow: hidden; background: var(--raised); }
 </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -201,8 +207,8 @@
         </div>
         <div class="row3">
           <label><span>Rate $ (whole load)</span><input id="linehaul" type="number" inputmode="decimal" min="0" step="0.01" value="1000" /></label>
-          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="0.40" /></label>
-          <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="50" /></label>
+          <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="1.00" /></label>
+          <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="0" /></label>
         </div>
         <div id="cutWrap">
           <label><span>Lease cut % (only on linehaul)</span><input id="cutPct" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="24.7" /></label>
@@ -952,7 +958,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   var STNAME = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'};
 
   var load = {
-    origin: '', destination: '', linehaul: 1000, fsc: 0.40, accessorials: 50,
+    origin: '', destination: '', linehaul: 1000, fsc: 1, accessorials: 0,
     cutPct: DISPATCH_DEFAULT, bennett: false, loaded: 0, deadhead: 0,
     width: '', height: '', length: '', weight: '', equipment: '',
     costs: 0, mpg: 6.5, dieselGal: 0, runCpm: 0, countExpenses: true, target: 0.4, startCity: '',
@@ -2175,7 +2181,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   }
   function renderRoute() {
     var el = $('routeOut'); if (!el) return;
-    var h = load.here, html = '';
+    var h = load.here, html = '', brokerPlaced = false;
     var o = place(load.origin), d = place(load.destination);
     var pts = lineOf(), showMap = pts.length >= 2;
     function roadItems(roads) {
@@ -2217,7 +2223,11 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       html += '<ul class="list plain">';
       html += '<li><strong>' + (truck ? 'Truck route: ' : 'Highway miles (not a truck route): ') + intn(h.miles) + ' mi</strong>, ' + hrs(h.minutes) + ', ' + esc(h.from) + ' \u2192 ' + esc(h.to) + '</li>';
       if (h.deadMiles != null) html += '<li>Empty: ' + intn(h.deadMiles) + ' mi, ' + hrs(h.deadMinutes) + (h.start ? ', from ' + esc(h.start) : '') + '</li>';
-      if (truck) html += '<li>Tolls: ' + (h.tollPoints ? money(h.tolls) + ' at ' + h.tollPoints + ' point(s), lowest fare each' : 'None reported') + '</li>';
+      if (truck) {
+        html += brokerBlockHtml();
+        brokerPlaced = true;
+        html += '<li>Tolls: ' + (h.tollPoints ? money(h.tolls) + ' at ' + h.tollPoints + ' point(s), lowest fare each' : 'None reported') + '</li>';
+      }
       if (h.profile) html += '<li>Profile: ' + esc(h.profile) + '</li>';
       (h.notices || []).forEach(function (n) { html += '<li class="neg">' + esc(n) + '</li>'; });
       html += '</ul>';
@@ -2225,6 +2235,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     } else if (!ui.busy) {
       html += '<p class="note">' + (hereKey() ? 'Press Get route for a HERE truck path.' : 'No HERE key — Get route will use public highway miles (OSRM) and label them as highway, not truck. Paste a HERE key for truck routing.') + '</p>';
     }
+    if (!brokerPlaced) html += brokerBlockHtml();
     if (ui.err) html += '<p class="note neg">' + esc(ui.err) + '</p>';
     if (ui.busy) html += '<p class="note">Getting route\u2026</p>';
     el.innerHTML = html;
@@ -2351,6 +2362,60 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       loadLog = Array.isArray(arr) ? arr.filter(function (r) { return r && r.id; }) : [];
     } catch (e) { loadLog = []; }
   }
+  function sharedContactNotes(raw) {
+    var notes = [];
+    if (!raw) return '';
+    if (raw.broker) notes.push('Broker ' + String(raw.broker).trim());
+    if (raw.pickup) notes.push('Pickup ' + String(raw.pickup).trim());
+    if (raw.weight) notes.push(String(raw.weight).trim() + ' lb');
+    if (raw.notes) notes.push(String(raw.notes).trim());
+    return notes.join(' · ');
+  }
+  function applySharedContact(row, raw) {
+    var next = {
+      phone: String(raw.phone || '').trim(),
+      contact: String(raw.contact || '').trim(),
+      loadNumber: String(raw.loadNumber || '').trim(),
+      origin: String(raw.origin || '').trim(),
+      destination: String(raw.destination || '').trim(),
+      broker: String(raw.broker || '').trim(),
+      pickup: String(raw.pickup || '').trim(),
+      weight: String(raw.weight || '').trim(),
+      equipment: String(raw.equipment || '').trim(),
+      notes: sharedContactNotes(raw)
+    };
+    var changed = false;
+    ['phone', 'contact', 'loadNumber', 'origin', 'destination', 'broker', 'pickup', 'weight', 'equipment', 'notes'].forEach(function (k) {
+      if (String(row[k] == null ? '' : row[k]) !== next[k]) {
+        row[k] = next[k];
+        changed = true;
+      }
+    });
+    return changed;
+  }
+  function brokerBlockHtml() {
+    var row = null;
+    if (openLogId) loadLog.forEach(function (r) { if (r && r.id === openLogId) row = r; });
+    if (!row) return '';
+    var phone = String(row.phone || '').trim();
+    var contact = String(row.contact || '').trim();
+    var loadNo = String(row.loadNumber || '').trim();
+    var pickup = String(row.origin || '').trim();
+    var drop = String(row.destination || '').trim();
+    var lines = [];
+    if (phone) {
+      var tel = phone.replace(/[^\d+]/g, '');
+      lines.push('Phone <a href="tel:' + esc(tel) + '">' + esc(phone) + '</a>');
+    }
+    if (contact) lines.push('Contact ' + esc(contact));
+    if (loadNo) lines.push('Load ' + esc(loadNo));
+    if (pickup) lines.push('Pickup ' + esc(pickup));
+    if (drop) lines.push('Drop ' + esc(drop));
+    if (!lines.length) return '';
+    return '<div class="broker-block" id="loadContact">' + lines.map(function (line) {
+      return '<div>' + line + '</div>';
+    }).join('') + '</div>';
+  }
   function sharedEntry(raw) {
     if (!raw || !raw.id) return null;
     var saved = {
@@ -2375,11 +2440,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     load.deadhead = saved.deadhead;
     load.accessorials = saved.accessorials;
     load.bennett = saved.bennett;
-    var notes = [];
-    if (raw.broker) notes.push('Broker ' + String(raw.broker).trim());
-    if (raw.pickup) notes.push('Pickup ' + String(raw.pickup).trim());
-    if (raw.weight) notes.push(String(raw.weight).trim() + ' lb');
-    if (raw.notes) notes.push(String(raw.notes).trim());
+    var notesText = sharedContactNotes(raw);
     return {
       id: String(raw.id),
       addedAt: raw.addedAt || new Date().toISOString(),
@@ -2398,12 +2459,15 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       heroWord: v.word,
       taken: false,
       takenAt: '',
-      notes: notes.join(' · '),
       comment: '',
       equipment: String(raw.equipment || '').trim(),
       weight: String(raw.weight || '').trim(),
       pickup: String(raw.pickup || '').trim(),
-      broker: String(raw.broker || '').trim()
+      broker: String(raw.broker || '').trim(),
+      phone: String(raw.phone || '').trim(),
+      contact: String(raw.contact || '').trim(),
+      loadNumber: String(raw.loadNumber || '').trim(),
+      notes: notesText
     };
   }
 
@@ -2524,23 +2588,29 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         return;
       }
       var have = {};
-      loadLog.forEach(function (r) { if (r && r.id) have[r.id] = true; });
+      loadLog.forEach(function (r) { if (r && r.id) have[r.id] = r; });
       var added = 0;
+      var changed = false;
       for (var i = arr.length - 1; i >= 0; i--) {
         var raw = arr[i];
-        if (!raw || !raw.id || have[String(raw.id)]) continue;
+        if (!raw || !raw.id) continue;
+        var id = String(raw.id);
+        if (have[id]) {
+          if (applySharedContact(have[id], raw)) changed = true;
+          continue;
+        }
         var entry = sharedEntry(raw);
         if (!entry) continue;
         loadLog.unshift(entry);
-        have[entry.id] = true;
+        have[entry.id] = entry;
         added++;
       }
       var opened = null;
-      if (added) {
-        loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
+      if (added || changed) {
+        if (added) loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
         loadLogWrite();
         renderLog();
-        logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
+        if (added) logSay(added === 1 ? '1 load came in from Tracker.' : added + ' loads came in from Tracker.');
       }
       if (!opened) {
         var originEl = $('origin');
@@ -2548,6 +2618,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         if (blank) loadLog.forEach(function (r) { if (r && r.source === 'tracker' && !opened) opened = r; });
       }
       if (opened) openLogLoad(opened);
+      else if (changed) render();
     }).catch(function () {});
   }
   function loadLogWrite() {
@@ -2667,6 +2738,12 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var cls = r.worthTaking === 'yes' ? 'yes' : r.worthTaking === 'maybe' ? 'maybe' : 'no';
       var ppmTxt = !(num(r.loadedMiles) > 0) || r.ppm == null || !isFinite(Number(r.ppm)) ? '\u2014' : money(num(r.ppm)) + '/loaded mi';
       var bits = ['Keep ' + money(num(r.keepAfterCut)), intn(num(r.loadedMiles)) + ' loaded mi', intn(num(r.deadheadMiles)) + ' deadhead', ppmTxt];
+      var phoneBit = String(r.phone || '').trim();
+      var contactBit = String(r.contact || '').trim();
+      var loadNoBit = String(r.loadNumber || '').trim();
+      if (phoneBit) bits.push(phoneBit);
+      if (contactBit) bits.push(contactBit);
+      if (loadNoBit) bits.push('Load ' + loadNoBit);
       if (r.equipment) bits.push(r.equipment);
       if (r.notes) bits.push(r.notes);
       if (r.comment && String(r.comment).trim()) bits.push(String(r.comment).trim());
