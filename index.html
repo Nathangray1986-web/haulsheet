@@ -1119,15 +1119,36 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
   }
   function nominatimGeocode(q) {
-    var nom = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us,ca,mx&q=' + encodeURIComponent(q);
-    return fetch(nom, { headers: { 'Accept': 'application/json' } }).then(function (r) {
-      if (!r.ok) throw new Error('geocoder ' + r.status);
-      return r.json();
-    }).then(function (arr) {
-      var it = arr && arr[0];
-      if (it && it.lat && it.lon) return { lat: parseFloat(it.lat), lng: parseFloat(it.lon), label: it.display_name || q };
-      throw new Error('Could not find "' + q + '"');
-    });
+    /* Nominatim returns 403 to browsers; Open-Meteo + Photon are CORS-friendly fallbacks. */
+    function openMeteo() {
+      var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=1&language=en&format=json';
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('geocoder ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var it = j && j.results && j.results[0];
+        if (it && it.latitude != null && it.longitude != null) {
+          var label = [it.name, it.admin1, it.country_code].filter(Boolean).join(', ');
+          return { lat: Number(it.latitude), lng: Number(it.longitude), label: label || q };
+        }
+        throw new Error('Could not find "' + q + '"');
+      });
+    }
+    function photon() {
+      var url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1';
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('geocoder ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var f = j && j.features && j.features[0], c = f && f.geometry && f.geometry.coordinates, p = f && f.properties;
+        if (c && c.length >= 2) {
+          var label = p ? [p.name, p.state || p.city, p.countrycode].filter(Boolean).join(', ') : q;
+          return { lat: Number(c[1]), lng: Number(c[0]), label: label || q };
+        }
+        throw new Error('Could not find "' + q + '"');
+      });
+    }
+    return openMeteo().then(null, function () { return photon(); });
   }
 
   function runRoute() {
