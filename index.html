@@ -187,8 +187,13 @@
           <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
           <label><span>Deadhead miles</span><input id="deadhead" type="number" inputmode="decimal" min="0" step="1" value="" /></label>
         </div>
+        <div class="row3">
+          <label><span>Truck MPG</span><input id="mpg" type="number" inputmode="decimal" min="0" step="0.1" value="6.5" /></label>
+          <label><span>Diesel $/gal</span><input id="dieselGal" type="number" inputmode="decimal" min="0" step="0.001" value="" placeholder="or from fuel stops" /></label>
+          <label><span>Tires, oil, insurance, repairs $/mi</span><input id="runCpm" type="number" inputmode="decimal" min="0" step="0.01" value="" placeholder="your number" /></label>
+        </div>
+        <p class="hint">Trip cost is fuel burned plus that per-mile number, on loaded miles and deadhead. Fuel = miles ÷ MPG × diesel. If diesel is blank and fuel stops loaded, the average street price on the route is used. MPG starts at 6.5 until you change it. The tires/oil/insurance box stays blank until you set it — nothing is guessed.</p>
         <div class="row2">
-          <label><span>Trip costs $ (optional)</span><input id="costs" type="number" inputmode="decimal" min="0" step="0.01" value="0" /></label>
           <label><span>Target $/loaded mi</span><input id="target" type="number" inputmode="decimal" min="0" step="0.01" value="0.4" /></label>
         </div>
       </div>
@@ -201,7 +206,10 @@
         <div class="line"><span>Cut <span id="oCutPct"></span></span><strong id="oCut">$0.00</strong></div>
         <div class="line"><span>Broker total before cut</span><strong id="oGross">$0.00</strong></div>
         <div class="line"><span>What you keep after the cut</span><strong id="oNet">$0.00</strong></div>
+        <div class="line"><span>Fuel burned</span><strong id="oFuelBurn">$0.00</strong></div>
+        <div class="line"><span>Tires, oil, insurance, repairs</span><strong id="oRunOther">$0.00</strong></div>
         <div class="line"><span>Trip costs</span><strong id="oCost">$0.00</strong></div>
+        <div class="line"><span>Cost to run / mile</span><strong id="oRunCpm">—</strong></div>
         <div class="line"><span>Profit after costs</span><strong id="oProfit">$0.00</strong></div>
         <div class="line"><span>$ / loaded mile</span><strong id="oPpm">—</strong></div>
       </div>
@@ -901,7 +909,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     origin: '', destination: '', linehaul: 1000, fsc: 0.40, accessorials: 50,
     cutPct: DISPATCH_DEFAULT, bennett: false, loaded: 0, deadhead: 0,
     width: '', height: '', length: '', weight: '', equipment: '',
-    costs: 0, target: 0.4, startCity: '',
+    costs: 0, mpg: 6.5, dieselGal: 0, runCpm: 0, target: 0.4, startCity: '',
     here: null, fuel: null, weather: null, routeKind: ''
   };
   var ui = { busy: false, err: '', fuelBusy: false, fuelErr: '', wxBusy: false, wxErr: '', ocrBusy: false, ocrNote: '', shotUrl: '', boardLoads: null };
@@ -932,7 +940,22 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     var netRevenue = cents(linehaul - dispatchFee + fsc + accessorialTotal);
     var deadheadMiles = Math.max(0, num(load.deadhead));
     var totalMiles = loadedMiles + deadheadMiles;
-    var totalCost = cents(Math.max(0, num(load.costs)));
+    var mpg = Math.max(0, num(load.mpg));
+    var diesel = Math.max(0, num(load.dieselGal));
+    var dieselFromStops = false;
+    if (!(diesel > 0) && load.fuel && load.fuel.stops) {
+      var prices = load.fuel.stops.filter(function (x) { return x && x.cur === 'USD' && x.p > 0; }).map(function (x) { return x.p; });
+      if (prices.length) {
+        diesel = prices.reduce(function (a, b) { return a + b; }, 0) / prices.length;
+        dieselFromStops = true;
+      }
+    }
+    var otherCpm = Math.max(0, num(load.runCpm));
+    var gallons = mpg > 0 ? totalMiles / mpg : 0;
+    var fuelBurn = cents(gallons * diesel);
+    var otherRun = cents(totalMiles * otherCpm);
+    var totalCost = cents(fuelBurn + otherRun);
+    var runPerMile = totalMiles > 0 ? totalCost / totalMiles : 0;
     var profit = cents(netRevenue - totalCost);
     var ppm = loadedMiles > 0 ? profit / loadedMiles : 0;
     var target = Math.max(0, num(load.target));
@@ -940,6 +963,8 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       linehaul: linehaul, fsc: fsc, fscPerMile: fscPerMile, accessorialTotal: accessorialTotal, feeBase: feeBase, feePct: feePct,
       dispatchFee: dispatchFee, gross: gross, netRevenue: netRevenue,
       loadedMiles: loadedMiles, deadheadMiles: deadheadMiles, totalMiles: totalMiles,
+      mpg: mpg, diesel: diesel, dieselFromStops: dieselFromStops, gallons: gallons,
+      fuelBurn: fuelBurn, otherRun: otherRun, otherCpm: otherCpm, runPerMile: runPerMile,
       totalCost: totalCost, profit: profit, ppm: ppm, target: target
     };
   }
@@ -1828,7 +1853,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     load.linehaul = num(v('linehaul')); load.fsc = num(v('fsc')); load.accessorials = num(v('accessorials'));
     load.cutPct = num(v('cutPct')); load.loaded = num(v('loaded')); load.deadhead = num(v('deadhead'));
     load.width = v('width'); load.height = v('height'); load.length = v('length'); load.weight = v('weight');
-    load.equipment = v('equipment'); load.costs = num(v('costs')); load.target = num(v('target'));
+    load.equipment = v('equipment'); load.mpg = num(v('mpg')); load.dieselGal = num(v('dieselGal')); load.runCpm = num(v('runCpm')); load.target = num(v('target'));
     load.startCity = v('startCity');
   }
   function setBennett(on) {
@@ -1842,7 +1867,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   function verdict(s) {
     var fill = 'wait', w = 'Enter a rate', line = 'Linehaul minus cut, plus fuel surcharge and extras';
     if (s.linehaul > 0 || s.loadedMiles > 0 || s.totalCost > 0) {
-      if (s.loadedMiles <= 0 || s.totalCost <= 0) { fill = 'yes'; w = 'You keep'; line = 'After the cut. Trip costs not entered yet, so this is pay only.'; }
+      if (s.loadedMiles <= 0 || s.totalCost <= 0) { fill = 'yes'; w = 'You keep'; line = 'After the cut. Set miles, diesel, and your tires/oil/insurance rate to see what the truck costs.'; }
       else if (s.ppm >= s.target && s.ppm >= DRIVER_FLOOR) { fill = 'yes'; w = 'Take it'; line = money(s.ppm) + ' / loaded mile after costs.'; }
       else if (s.ppm >= DRIVER_FLOOR) { fill = 'maybe'; w = 'Thin'; line = money(s.ppm) + ' / loaded mile. Under your target.'; }
       else if (s.profit >= 0) { fill = 'maybe'; w = 'Barely'; line = 'You keep a little. Not enough.'; }
@@ -1877,7 +1902,10 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     set('oCut', money(s.dispatchFee));
     set('oNet', money(s.netRevenue));
     set('oGross', money(s.gross));
+    set('oFuelBurn', money(s.fuelBurn || 0) + (s.dieselFromStops ? ' (avg diesel on route)' : ''));
+    set('oRunOther', money(s.otherRun || 0));
     set('oCost', money(s.totalCost));
+    set('oRunCpm', s.totalMiles > 0 ? money(s.runPerMile) + '/mi' : '\u2014');
     set('oProfit', money(s.profit));
     set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
     set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on linehaul only'));
@@ -2268,9 +2296,20 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       try { localStorage.setItem(HERE_STORE, $('here-key').value.trim()); } catch (e) {}
       render();
     });
-    ['origin','destination','linehaul','fsc','accessorials','cutPct','loaded','deadhead','width','height','length','weight','equipment','costs','target','startCity'].forEach(function (id) {
+    try {
+      var savedRun = JSON.parse(localStorage.getItem('haulSheetRunRates') || '{}');
+      if ($('mpg') && savedRun.mpg) $('mpg').value = savedRun.mpg;
+      if ($('dieselGal') && savedRun.dieselGal) $('dieselGal').value = savedRun.dieselGal;
+      if ($('runCpm') && savedRun.runCpm) $('runCpm').value = savedRun.runCpm;
+    } catch (e) {}
+    ['origin','destination','linehaul','fsc','accessorials','cutPct','loaded','deadhead','width','height','length','weight','equipment','mpg','dieselGal','runCpm','target','startCity'].forEach(function (id) {
       var el = $(id); if (!el) return;
-      el.addEventListener('input', function () { render(); });
+      el.addEventListener('input', function () {
+        if (id === 'mpg' || id === 'dieselGal' || id === 'runCpm') {
+          try { localStorage.setItem('haulSheetRunRates', JSON.stringify({ mpg: $('mpg') && $('mpg').value, dieselGal: $('dieselGal') && $('dieselGal').value, runCpm: $('runCpm') && $('runCpm').value })); } catch (e) {}
+        }
+        render();
+      });
     });
     if ($('srcLease')) $('srcLease').addEventListener('click', function () { setBennett(false); render(); });
     if ($('srcBennett')) $('srcBennett').addEventListener('click', function () { setBennett(true); render(); });
