@@ -175,12 +175,12 @@
       font-variant-numeric: tabular-nums; color-scheme: dark;
     }
     input[type="date"]:focus { border-color: var(--accent); }
-    textarea#fuelNote {
+    input#fuelLocation {
       width: 100%; display: block; border-radius: 0.6rem; border: 1px solid var(--line);
       background: var(--bg); color: var(--fg); font: inherit; font-size: 1.05rem; line-height: 1.35;
       padding: 0.55rem 0.75rem; outline: none; resize: vertical;
     }
-    textarea#fuelNote:focus { border-color: var(--accent); }
+    input#fuelLocation:focus { border-color: var(--accent); }
     .fuel-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; margin: 0.55rem 0 0.75rem; }
     .fuel-tot {
       background: var(--bg); border: 1px solid var(--line); border-radius: 0.6rem; padding: 0.65rem 0.75rem;
@@ -362,7 +362,7 @@
   <div class="card" id="fuelLogCard">
     <details class="fuel-details" open>
       <summary>Fuel Savings Log</summary>
-      <p class="hint">Log pump price and gallons. Savings = max(0, (compare − pump) × gallons). Photos stay in this browser only — not shared.</p>
+      <p class="hint">Savings = (rack − price paid) × gallons. Photos stay in this browser only.</p>
       <div class="fuel-totals">
         <div class="fuel-tot">
           <div class="k">This month</div>
@@ -377,13 +377,13 @@
       </div>
       <div class="row2">
         <label><span>Date</span><input id="fuelDate" type="date" /></label>
-        <label><span>Pump price ($/gal)</span><input id="fuelPump" type="number" inputmode="decimal" min="0" step="0.001" placeholder="3.499" /></label>
+        <label><span>Location</span><input id="fuelLocation" type="text" placeholder="Loves Cortez" autocomplete="off" /></label>
       </div>
       <div class="row2">
         <label><span>Gallons</span><input id="fuelGal" type="number" inputmode="decimal" min="0" step="0.01" placeholder="100" /></label>
-        <label><span>Compare at ($/gal)</span><input id="fuelCompare" type="number" inputmode="decimal" min="0" step="0.001" placeholder="usual price" /></label>
+        <label><span>Price paid ($/gal)</span><input id="fuelPump" type="number" inputmode="decimal" min="0" step="0.001" placeholder="3.499" /></label>
       </div>
-      <label><span>Note (optional)</span><textarea id="fuelNote" rows="2" placeholder="Station name, exit, etc." autocomplete="off"></textarea></label>
+      <label><span>Rack price ($/gal)</span><input id="fuelCompare" type="number" inputmode="decimal" min="0" step="0.001" placeholder="3.799" /></label>
       <label><span>Pump photo (optional)</span>
         <input id="fuelPhoto" type="file" accept="image/*" capture="environment" aria-label="Pump sign photo" />
       </label>
@@ -3191,10 +3191,12 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
 
   /* ---- Fuel Savings Log (local only; never shared-loads) ---- */
   var FUEL_STORE = 'haulSheetFuelLog';
-  var FUEL_COMPARE_STORE = 'haulSheetFuelCompare';
+  var FUEL_RACK_STORE = 'haulSheetFuelRackPrice';
+  var FUEL_COMPARE_STORE_OLD = 'haulSheetFuelCompare';
   var FUEL_PHOTO_CAP = 2 * 1024 * 1024;
   var fuelLog = [];
   var fuelPendingPhoto = '';
+  var fuelMethodHint = 'manual';
 
   function fuelTodayLocal() {
     var d = new Date();
@@ -3208,11 +3210,42 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if (!m) return null;
     return { y: +m[1], mo: +m[2], d: +m[3] };
   }
-  function fuelSavingsDollars(pump, compare, gallons) {
-    var p = Math.max(0, num(pump));
-    var c = Math.max(0, num(compare));
+  function fuelSavingsDollars(pricePaid, rackPrice, gallons) {
+    var p = Math.max(0, num(pricePaid));
+    var r = Math.max(0, num(rackPrice));
     var g = Math.max(0, num(gallons));
-    return cents(Math.max(0, (c - p) * g));
+    return cents((r - p) * g);
+  }
+  function fuelReadRackPrice() {
+    try {
+      var v = localStorage.getItem(FUEL_RACK_STORE);
+      if (v) return v;
+      v = localStorage.getItem(FUEL_COMPARE_STORE_OLD);
+      if (v) {
+        try { localStorage.setItem(FUEL_RACK_STORE, v); } catch (e0) {}
+        return v;
+      }
+    } catch (e) {}
+    return '';
+  }
+  function fuelWriteRackPrice(v) {
+    try { localStorage.setItem(FUEL_RACK_STORE, String(v)); } catch (e) {}
+  }
+  function fuelEntryLocation(r) {
+    if (!r) return '';
+    if (r.location != null && String(r.location).trim()) return String(r.location).trim();
+    if (r.note != null && String(r.note).trim()) return String(r.note).trim();
+    return '';
+  }
+  function fuelEntryPricePaid(r) {
+    if (!r) return 0;
+    if (r.price_paid != null && r.price_paid !== '') return num(r.price_paid);
+    return num(r.pump);
+  }
+  function fuelEntryRack(r) {
+    if (!r) return 0;
+    if (r.rack_price != null && r.rack_price !== '') return num(r.rack_price);
+    return num(r.compare);
   }
   function fuelRead() {
     try {
@@ -3278,7 +3311,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     while ((m = re.exec(raw))) {
       var v = parseFloat(m[1]);
       if (!isFinite(v)) continue;
-      if (v < 1.5 || v > 9.999) continue;
+      if (v < 2.5 || v > 6.0) continue;
       var score = 0;
       if (/\.\d{3}/.test(m[1])) score += 3;
       if (/\$/.test(m[0])) score += 2;
@@ -3308,8 +3341,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var price = fuelParsePumpPrice(text);
       if (price != null && $('fuelPump')) {
         $('fuelPump').value = String(price);
+        fuelMethodHint = 'photo';
         fuelUpdatePreview();
-        if (msg) msg.textContent = 'Filled pump price from photo — check it.';
+        if (msg) msg.textContent = 'Filled price paid from photo — check it.';
         return price;
       }
       failSoft();
@@ -3324,16 +3358,17 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     var wrap = $('fuelPreviewWrap');
     var img = $('fuelPreview');
     var msg = $('fuelPhotoMsg');
-    if (wrap) wrap.hidden = !fuelPendingPhoto;
+    if (wrap) wrap.hidden = !fuelPendingPhoto && !(msg && msg.textContent);
     if (img) {
-      if (fuelPendingPhoto) { img.src = fuelPendingPhoto; img.hidden = false; }
-      else { img.removeAttribute('src'); img.hidden = true; }
+      if (dataUrl) { img.src = dataUrl; img.hidden = false; if (wrap) wrap.hidden = false; }
+      else if (!fuelPendingPhoto) { img.removeAttribute('src'); img.hidden = true; }
     }
     if (msg && note != null) msg.textContent = note;
   }
   function fuelOnPhoto(file) {
     if (!file) return;
     fuelSetMsg('');
+    fuelMethodHint = 'photo';
     fuelCompress(file, 800, 0.7).then(function (dataUrl) {
       var extra = dataUrl.length;
       if (fuelPhotoBytes() + extra > FUEL_PHOTO_CAP) {
@@ -3352,36 +3387,44 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     }, function (err) {
       fuelSetMsg((err && err.message) || 'Could not open that picture.', 'neg');
       fuelShowPending('', '');
+      fuelMethodHint = 'manual';
     });
   }
-  function fuelClearForm(keepCompare) {
+  function fuelClearForm(keepRack) {
     if ($('fuelDate')) $('fuelDate').value = fuelTodayLocal();
     if ($('fuelPump')) $('fuelPump').value = '';
     if ($('fuelGal')) $('fuelGal').value = '';
-    if (!keepCompare && $('fuelCompare')) {
-      try {
-        var saved = localStorage.getItem(FUEL_COMPARE_STORE);
-        if (saved) $('fuelCompare').value = saved;
-      } catch (e) {}
+    if (!keepRack && $('fuelCompare')) {
+      var saved = fuelReadRackPrice();
+      if (saved) $('fuelCompare').value = saved;
+      else $('fuelCompare').value = '';
     }
-    if ($('fuelNote')) $('fuelNote').value = '';
+    if ($('fuelLocation')) $('fuelLocation').value = '';
     if ($('fuelPhoto')) try { $('fuelPhoto').value = ''; } catch (e2) {}
+    fuelPendingPhoto = '';
+    fuelMethodHint = 'manual';
     fuelShowPending('', '');
+    var wrap = $('fuelPreviewWrap');
+    if (wrap) wrap.hidden = true;
+    var img = $('fuelPreview');
+    if (img) { img.removeAttribute('src'); img.hidden = true; }
+    var pmsg = $('fuelPhotoMsg');
+    if (pmsg) pmsg.textContent = '';
     fuelUpdatePreview();
     fuelSetMsg('');
   }
   function fuelAdd() {
     var date = $('fuelDate') && $('fuelDate').value;
-    var pump = num($('fuelPump') && $('fuelPump').value);
+    var pricePaid = num($('fuelPump') && $('fuelPump').value);
     var gal = num($('fuelGal') && $('fuelGal').value);
-    var compare = num($('fuelCompare') && $('fuelCompare').value);
-    var note = $('fuelNote') && $('fuelNote').value ? String($('fuelNote').value).trim() : '';
+    var rack = num($('fuelCompare') && $('fuelCompare').value);
+    var location = $('fuelLocation') && $('fuelLocation').value ? String($('fuelLocation').value).trim() : '';
     if (!date || !fuelParts(date)) {
       fuelSetMsg('Pick a date.', 'warn');
       return;
     }
-    if (!(pump > 0)) {
-      fuelSetMsg('Enter the pump price ($/gal).', 'warn');
+    if (!(pricePaid > 0)) {
+      fuelSetMsg('Enter the price paid ($/gal).', 'warn');
       return;
     }
     if (!(gal > 0)) {
@@ -3395,14 +3438,16 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     } else {
       fuelSetMsg('');
     }
+    var method = (photo || fuelMethodHint === 'photo') ? 'photo' : 'manual';
     var entry = {
       id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       date: date,
-      pump: pump,
+      location: location,
       gallons: gal,
-      compare: compare > 0 ? compare : 0,
-      savings: fuelSavingsDollars(pump, compare, gal),
-      note: note,
+      price_paid: pricePaid,
+      rack_price: rack > 0 ? rack : 0,
+      savings: fuelSavingsDollars(pricePaid, rack, gal),
+      method: method,
       photo: photo || undefined,
       at: new Date().toISOString()
     };
@@ -3423,11 +3468,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         return;
       }
     }
-    if (compare > 0) {
-      try { localStorage.setItem(FUEL_COMPARE_STORE, String(compare)); } catch (e) {}
-    }
+    if (rack > 0) fuelWriteRackPrice(rack);
     fuelClearForm(true);
-    if ($('fuelCompare') && compare > 0) $('fuelCompare').value = String(compare);
+    if ($('fuelCompare') && rack > 0) $('fuelCompare').value = String(rack);
     renderFuelLog();
     if (!$('fuelMsg').textContent) fuelSetMsg('Fill-up saved.');
   }
@@ -3447,7 +3490,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
     ordered.forEach(function (r) {
       var p = fuelParts(r.date);
-      var sav = cents(Math.max(0, num(r.savings)));
+      var sav = cents(num(r.savings));
       if (!p) return;
       if (p.y === now.y) { yearSave += sav; yearCount++; }
       if (p.y === now.y && p.mo === now.mo) { monthSave += sav; monthCount++; }
@@ -3464,14 +3507,19 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     }
     list.innerHTML = ordered.map(function (r) {
       var thumb = r.photo ? '<img src="' + esc(r.photo) + '" alt="" />' : '';
-      var note = r.note ? '<div class="meta">' + esc(r.note) + '</div>' : '';
-      var cmp = r.compare > 0 ? (' · compare ' + money(r.compare) + '/gal') : '';
+      var loc = fuelEntryLocation(r);
+      var locHtml = loc ? '<div class="meta">' + esc(loc) + '</div>' : '';
+      var price = fuelEntryPricePaid(r);
+      var rack = fuelEntryRack(r);
+      var rackBit = rack > 0 ? (' · rack ' + money(rack) + '/gal') : '';
+      var sav = cents(num(r.savings));
+      var savWord = sav < 0 ? 'Over ' : 'Saved ';
       return '<div class="fuel-row" data-fuel-id="' + esc(r.id) + '">' +
         thumb +
         '<div class="grow">' +
-          '<div class="lane">' + esc(r.date) + ' · ' + money(r.pump) + '/gal · ' + esc(String(r.gallons)) + ' gal</div>' +
-          '<div class="save">Saved ' + money(cents(Math.max(0, num(r.savings)))) + cmp + '</div>' +
-          note +
+          '<div class="lane">' + esc(r.date) + ' · ' + money(price) + '/gal · ' + esc(String(r.gallons)) + ' gal</div>' +
+          '<div class="save">' + savWord + money(Math.abs(sav)) + rackBit + '</div>' +
+          locHtml +
         '</div>' +
         '<button type="button" class="btn-del" data-fuel-del="' + esc(r.id) + '">Delete</button>' +
       '</div>';
@@ -3481,7 +3529,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     fuelRead();
     if ($('fuelDate') && !$('fuelDate').value) $('fuelDate').value = fuelTodayLocal();
     try {
-      var saved = localStorage.getItem(FUEL_COMPARE_STORE);
+      var saved = fuelReadRackPrice();
       if (saved && $('fuelCompare') && !$('fuelCompare').value) $('fuelCompare').value = saved;
     } catch (e) {}
     ['fuelPump', 'fuelGal', 'fuelCompare'].forEach(function (id) {
@@ -3490,9 +3538,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
     if ($('fuelCompare')) $('fuelCompare').addEventListener('change', function () {
       var v = num($('fuelCompare').value);
-      if (v > 0) {
-        try { localStorage.setItem(FUEL_COMPARE_STORE, String(v)); } catch (e2) {}
-      }
+      if (v > 0) fuelWriteRackPrice(v);
     });
     if ($('btnFuelAdd')) $('btnFuelAdd').addEventListener('click', fuelAdd);
     if ($('btnFuelClearForm')) $('btnFuelClearForm').addEventListener('click', function () { fuelClearForm(false); });
@@ -3511,6 +3557,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     fuelUpdatePreview();
     renderFuelLog();
   }
+
 
   loadLogRead();
   restoreOpenNote();
