@@ -2107,6 +2107,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   }
   function applyOcrLoad(L) {
     if (!L) return;
+    closeOpenLogLoad();
     if (L.origin) setInput('origin', L.origin);
     if (L.destination) setInput('destination', L.destination);
     if (num(L.linehaul) >= 50) setInput('linehaul', String(num(L.linehaul)));
@@ -2684,6 +2685,8 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     var row = null;
     if (openLogId) loadLog.forEach(function (r) { if (r && r.id === openLogId) row = r; });
     if (!row) return '';
+    /* Only show the contact while the calculator is still on this load's lane. */
+    if (samePlace(row.origin, load.origin) === false || samePlace(row.destination, load.destination) === false) return '';
     var phone = String(row.phone || '').trim();
     var contact = String(row.contact || '').trim();
     var loadNo = String(row.loadNumber || '').trim();
@@ -2842,6 +2845,19 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var noteEl = $('logNote');
       if (noteEl) noteEl.value = saved.text != null ? String(saved.text) : '';
     } catch (e) {}
+  }
+  function samePlace(a, b) {
+    a = String(a || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    b = String(b || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!a || !b) return null;
+    return a === b;
+  }
+  function closeOpenLogLoad() {
+    if (!openLogId) return;
+    openLogId = null;
+    var noteEl = $('logNote');
+    if (noteEl) noteEl.value = '';
+    rememberOpenNote('');
   }
   function openLogLoad(r) {
     if (!r) return;
