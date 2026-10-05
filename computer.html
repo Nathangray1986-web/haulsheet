@@ -4159,5 +4159,24 @@ if (location.protocol === 'https:' || location.hostname === 'localhost' || locat
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(function(){}); }
 }
 </script>
+<script>
+/* Reload once when a new service worker takes over, and check for updates when the app is reopened. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (reg) reg.update().catch(function(){});
+    }).catch(function(){});
+  });
+})();
+</script>
 </body>
 </html>
