@@ -1,5 +1,5 @@
 /* Haul Sheet app shell. Bump CACHE to refresh installed copies. */
-var CACHE = 'haul-sheet-shell-v18';
+var CACHE = 'haul-sheet-shell-v19';
 var SHELL = [
   './',
   './index.html',
@@ -13,7 +13,10 @@ var SHELL = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE).then(function (cache) {
-      return cache.addAll(SHELL);
+      /* Bypass the HTTP cache so a new worker never precaches stale files. */
+      return cache.addAll(SHELL.map(function (url) {
+        return new Request(url, { cache: 'reload' });
+      }));
     }).then(function () {
       return self.skipWaiting();
     })
@@ -74,9 +77,12 @@ self.addEventListener('fetch', function (event) {
   event.respondWith(
     caches.match(req).then(function (hit) {
       if (hit) return hit;
-      return fetch(req).then(function (res) {
+      var sameOrigin = false;
+      try { sameOrigin = new URL(req.url).origin === self.location.origin; } catch (e) {}
+      /* Revalidate same-origin misses with the server instead of trusting the HTTP cache. */
+      return (sameOrigin ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req)).then(function (res) {
         try {
-          if (res && res.ok && new URL(req.url).origin === self.location.origin) {
+          if (res && res.ok && sameOrigin) {
             var copy = res.clone();
             caches.open(CACHE).then(function (cache) {
               cache.put(req, copy);
