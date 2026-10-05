@@ -221,6 +221,47 @@
       content: " ▾"; color: var(--muted); font-weight: 500; font-size: 0.95rem;
     }
     details.fuel-details:not([open]) > summary::after { content: " ▸"; }
+
+    /* Rate pair, break-even, detention, maintenance */
+    .rate-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; margin: 0.55rem 0 0.35rem; }
+    .rate-box {
+      background: var(--bg); border: 1px solid var(--line); border-radius: 0.6rem; padding: 0.65rem 0.75rem;
+    }
+    .rate-box .k { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .rate-box .v { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.15rem; }
+    .rate-box .s { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; line-height: 1.3; }
+    .rate-box.ok .v { color: var(--good); }
+    .rate-box.thin .v { color: #e6b84d; }
+    .rate-box.bad .v { color: #ff8a8a; }
+    .tool-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.45rem 0; }
+    .tool-row .btn { flex: 0 0 auto; }
+    .be-compare { margin: 0.45rem 0 0.25rem; }
+    .be-compare .line { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.35rem 0; border-top: 1px solid var(--line); }
+    .be-compare .line:first-child { border-top: 0; }
+    input[type="datetime-local"] {
+      width: 100%; height: 2.75rem; border-radius: 0.6rem; border: 1px solid var(--line);
+      background: var(--bg); color: var(--fg); font-size: 1.05rem; padding: 0 0.75rem; outline: none;
+      font-variant-numeric: tabular-nums; color-scheme: dark;
+    }
+    input[type="datetime-local"]:focus { border-color: var(--accent); }
+    .det-row, .maint-row {
+      border-top: 1px solid var(--line); padding: 0.65rem 0; display: flex; gap: 0.55rem; align-items: flex-start;
+    }
+    .det-row .grow, .maint-row .grow { flex: 1; min-width: 0; }
+    .det-row .lane, .maint-row .lane { font-weight: 700; }
+    .det-row .meta, .maint-row .meta { color: var(--muted); font-size: 0.88rem; margin-top: 0.2rem; }
+    .det-row .save, .maint-row .save { color: var(--good); font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.15rem; }
+    .det-row .btn-del, .maint-row .btn-del {
+      flex: 0 0 auto; height: 2.2rem; padding: 0 0.7rem; border-radius: 0.5rem;
+      border: 1px solid var(--line); background: var(--raised); color: var(--fg);
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .fuel-warn {
+      background: rgba(230, 184, 77, 0.12); border: 1px solid rgba(230, 184, 77, 0.45);
+      border-radius: 0.6rem; padding: 0.65rem 0.75rem; margin: 0.45rem 0 0.65rem;
+      color: var(--fg); font-size: 0.92rem; line-height: 1.4;
+    }
+    .fuel-warn strong { color: #e6b84d; }
 </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -275,6 +316,7 @@
           <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
           <label><span>Deadhead miles</span><input id="deadhead" type="number" inputmode="decimal" min="0" step="1" value="" /></label>
         </div>
+        <p class="note" id="oTotalMilesLine">Total miles (loaded + deadhead): —</p>
         <div class="row3">
           <label><span>Truck MPG</span><input id="mpg" type="number" inputmode="decimal" min="0" step="0.1" value="6.5" /></label>
           <label><span>Diesel $/gal</span><input id="dieselGal" type="number" inputmode="decimal" min="0" step="0.001" value="" placeholder="or from fuel stops" /></label>
@@ -349,7 +391,19 @@
         <div class="line"><span>Trip costs</span><strong id="oCost">$0.00</strong></div>
         <div class="line"><span>Cost to run / mile</span><strong id="oRunCpm">—</strong></div>
         <div class="line"><span>Profit after costs</span><strong id="oProfit">$0.00</strong></div>
-        <div class="line"><span>$ / loaded mile</span><strong id="oPpm">—</strong></div>
+        <div class="line"><span>$ / loaded mile (profit)</span><strong id="oPpm">—</strong></div>
+        <div class="rate-pair" id="payRatePair">
+          <div class="rate-box">
+            <div class="k">Loaded rate (keep)</div>
+            <div class="v" id="oLoadedRate">—</div>
+            <div class="s" id="oLoadedRateHint">pay ÷ loaded miles</div>
+          </div>
+          <div class="rate-box">
+            <div class="k">All-miles rate (keep)</div>
+            <div class="v" id="oAllMilesRate">—</div>
+            <div class="s" id="oAllMilesHint">includes 0 deadhead miles.</div>
+          </div>
+        </div>
       </div>
       <div class="card">
         <h2>How the cut works</h2>
@@ -363,6 +417,7 @@
     <details class="fuel-details" open>
       <summary>Fuel Savings Log</summary>
       <p class="hint">Savings = (rack − price paid) × gallons. Photos stay in this browser only.</p>
+      <p class="fuel-warn"><strong>LESS-IFTA price:</strong> Log what you actually pay at the pump (the LESS-IFTA / after-IFTA price), <em>not</em> the EFS pin price. Logging the pin only captures the card discount and misses the IFTA portion — roughly half the real savings.</p>
       <div class="fuel-totals">
         <div class="fuel-tot">
           <div class="k">This month</div>
@@ -381,9 +436,12 @@
       </div>
       <div class="row2">
         <label><span>Gallons</span><input id="fuelGal" type="number" inputmode="decimal" min="0" step="0.01" placeholder="100" /></label>
-        <label><span>Price paid ($/gal)</span><input id="fuelPump" type="number" inputmode="decimal" min="0" step="0.001" placeholder="3.499" /></label>
+        <label><span>Price paid ($/gal)</span><input id="fuelPump" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="5.4356" /></label>
       </div>
-      <label><span>Rack price ($/gal)</span><input id="fuelCompare" type="number" inputmode="decimal" min="0" step="0.001" placeholder="3.799" /></label>
+      <div class="row2">
+        <label><span>Rack price ($/gal)</span><input id="fuelCompare" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="6.1890" /></label>
+        <label><span>Miles this fill (optional)</span><input id="fuelMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 650" /></label>
+      </div>
       <label><span>Pump photo (optional)</span>
         <input id="fuelPhoto" type="file" accept="image/*" capture="environment" aria-label="Pump sign photo" />
       </label>
@@ -395,9 +453,94 @@
       </div>
       <p class="note" id="fuelSavePreview">Savings this fill: $0.00</p>
       <p class="note" id="fuelMsg"></p>
-      <button class="btn primary" type="button" id="btnFuelAdd">Add fill-up</button>
-      <button class="btn" type="button" id="btnFuelClearForm">Clear form</button>
+      <div class="tool-row">
+        <button class="btn primary" type="button" id="btnFuelAdd">Add fill-up</button>
+        <button class="btn" type="button" id="btnFuelClearForm">Clear form</button>
+        <button class="btn" type="button" id="btnFuelTestExample">Test: Cortez Love&apos;s #850</button>
+      </div>
       <div id="fuelList"></div>
+    </details>
+  </div>
+
+
+  <div class="card" id="breakEvenCard">
+    <details class="fuel-details" open>
+      <summary>Break-even &amp; fuel cost / mile</summary>
+      <p class="hint">Monthly fixed costs ÷ average miles = break-even $/mi. Compared to this load&apos;s all-miles keep rate. Fuel CPM comes from Fuel Savings Log entries that include miles.</p>
+      <div class="row2">
+        <label><span>Monthly fixed costs $</span><input id="beFixed" type="number" inputmode="decimal" min="0" step="1" placeholder="insurance, truck, ELD…" /></label>
+        <label><span>Avg miles / month</span><input id="beMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="10000" /></label>
+      </div>
+      <div class="be-compare">
+        <div class="line"><span>Break-even $/mi</span><strong id="beRate">—</strong></div>
+        <div class="line"><span>This load all-miles rate</span><strong id="beAllMiles">—</strong></div>
+        <div class="line"><span>Clears break-even?</span><strong id="beVerdict">—</strong></div>
+        <div class="line"><span>Fuel cost / mile (from log)</span><strong id="fuelCpmOut">—</strong></div>
+      </div>
+      <p class="note" id="fuelCpmHint">Add &quot;Miles this fill&quot; on fuel entries to compute fuel CPM.</p>
+      <p class="note" id="beMsg"></p>
+    </details>
+  </div>
+
+  <div class="card" id="detentionCard">
+    <details class="fuel-details">
+      <summary>Detention Tracker</summary>
+      <p class="hint">Hours on site minus free time × hourly rate. Running monthly total stays in this browser only.</p>
+      <div class="row2">
+        <label><span>Arrival</span><input id="detArrive" type="datetime-local" /></label>
+        <label><span>Departure</span><input id="detDepart" type="datetime-local" /></label>
+      </div>
+      <div class="row2">
+        <label><span>Pay rate $/hr</span><input id="detRate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="50" /></label>
+        <label><span>Free time (hours)</span><input id="detFree" type="number" inputmode="decimal" min="0" step="0.25" value="2" /></label>
+      </div>
+      <p class="note" id="detPreview">Billable: — · Pay: —</p>
+      <p class="note" id="detMsg"></p>
+      <div class="fuel-totals">
+        <div class="fuel-tot">
+          <div class="k">This month</div>
+          <div class="v" id="detMonthTotal">$0.00</div>
+          <div class="s" id="detMonthCount">0 stops</div>
+        </div>
+      </div>
+      <div class="tool-row">
+        <button class="btn primary" type="button" id="btnDetAdd">Add detention</button>
+        <button class="btn" type="button" id="btnDetClear">Clear form</button>
+      </div>
+      <div id="detList"></div>
+    </details>
+  </div>
+
+  <div class="card" id="maintCard">
+    <details class="fuel-details">
+      <summary>Maintenance Log</summary>
+      <p class="hint">Date, mileage, item, cost. Cost per mile uses max − min mileage once you have two mileage points.</p>
+      <div class="row2">
+        <label><span>Date</span><input id="maintDate" type="date" /></label>
+        <label><span>Mileage</span><input id="maintMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="odometer" /></label>
+      </div>
+      <div class="row2">
+        <label><span>Item</span><input id="maintItem" type="text" placeholder="oil change, tires, brakes…" autocomplete="off" /></label>
+        <label><span>Cost $</span><input id="maintCost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" /></label>
+      </div>
+      <div class="fuel-totals">
+        <div class="fuel-tot">
+          <div class="k">Running total</div>
+          <div class="v" id="maintTotal">$0.00</div>
+          <div class="s" id="maintCount">0 entries</div>
+        </div>
+        <div class="fuel-tot">
+          <div class="k">Cost / mile</div>
+          <div class="v" id="maintCpm">—</div>
+          <div class="s" id="maintCpmHint">needs 2+ mileage points</div>
+        </div>
+      </div>
+      <p class="note" id="maintMsg"></p>
+      <div class="tool-row">
+        <button class="btn primary" type="button" id="btnMaintAdd">Add entry</button>
+        <button class="btn" type="button" id="btnMaintClear">Clear form</button>
+      </div>
+      <div id="maintList"></div>
     </details>
   </div>
 
@@ -2214,6 +2357,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     set('oProfit', money(s.profit));
     set('oPpm', s.loadedMiles > 0 ? money(s.ppm) + '/mi' : '\u2014');
     set('oCutPct', load.bennett ? '0% (Bennett)' : (s.feePct + '% on the rate after fuel and extras'));
+    updatePayRates(s);
   }
   var routeMap = null, routeLine = null, routeMapSig = '', routeTiles = null, routeTileKey = null;
   function routeLineSig(pts) {
@@ -3138,6 +3282,9 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if ($('btnWx')) $('btnWx').addEventListener('click', function () { loadWeather(); });
     bindLoadLog();
     bindFuelLog();
+    bindBreakEven();
+    bindDetention();
+    bindMaint();
 
     var zone = $('dropZone'), file = $('shotFile');
     function takeFiles(files) {
@@ -3187,6 +3334,415 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       board: (ui.boardLoads || []).length
     };
   };
+
+
+/* Haul Sheet feature pack applied */
+
+  /* ---- Feature pack: all-miles rate, break-even, fuel CPM, detention, maintenance ---- */
+  var BE_STORE = 'haulSheetBreakEven';
+  var DET_STORE = 'haulSheetDetentionLog';
+  var DET_CFG_STORE = 'haulSheetDetentionCfg';
+  var MAINT_STORE = 'haulSheetMaintLog';
+  var lastAllMilesRate = null;
+  var lastNetPay = 0;
+  var detentionLog = [];
+  var maintLog = [];
+
+  function money4(v) {
+    var n = Number(v);
+    if (!isFinite(n)) n = 0;
+    var a = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    return (n < 0 ? '\u2212$' : '$') + a;
+  }
+  function moneyMi(v) {
+    if (v == null || !isFinite(Number(v))) return '\u2014';
+    return money(Number(v)) + '/mi';
+  }
+  function updatePayRates(s) {
+    var pay = s.overRate ? 0 : num(s.netRevenue);
+    lastNetPay = pay;
+    var loaded = Math.max(0, num(s.loadedMiles));
+    var dh = Math.max(0, num(s.deadheadMiles));
+    var total = Math.max(0, num(s.totalMiles));
+    var totEl = $('oTotalMilesLine');
+    if (totEl) {
+      if (loaded > 0 || dh > 0) totEl.textContent = 'Total miles (loaded + deadhead): ' + intn(total) + ' mi';
+      else totEl.textContent = 'Total miles (loaded + deadhead): \u2014';
+    }
+    var loadedRate = loaded > 0 ? pay / loaded : null;
+    var allRate = total > 0 ? pay / total : (loaded > 0 ? loadedRate : null);
+    if (!(dh > 0) && loaded > 0) allRate = loadedRate;
+    lastAllMilesRate = allRate;
+    var lr = $('oLoadedRate'), ar = $('oAllMilesRate'), ah = $('oAllMilesHint'), lh = $('oLoadedRateHint');
+    if (lr) lr.textContent = loadedRate != null ? money(loadedRate) + '/mi' : '\u2014';
+    if (ar) ar.textContent = allRate != null ? money(allRate) + '/mi' : '\u2014';
+    if (lh) lh.textContent = loaded > 0 ? ('pay \u00f7 ' + intn(loaded) + ' loaded mi') : 'pay \u00f7 loaded miles';
+    if (ah) ah.textContent = 'includes ' + intn(dh) + ' deadhead miles.';
+    updateBreakEvenDisplay();
+  }
+
+  function beRead() {
+    try {
+      var raw = localStorage.getItem(BE_STORE);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function beWrite(obj) {
+    try { localStorage.setItem(BE_STORE, JSON.stringify(obj)); } catch (e) {}
+  }
+  function fuelCpmFromLog() {
+    var spend = 0, miles = 0, withMiles = 0;
+    fuelLog.forEach(function (r) {
+      if (!r) return;
+      var gal = Math.max(0, num(r.gallons));
+      var paid = Math.max(0, fuelEntryPricePaid(r));
+      spend += paid * gal;
+      var m = num(r.miles);
+      if (m > 0) { miles += m; withMiles++; }
+    });
+    if (!(miles > 0)) return { cpm: null, spend: spend, miles: 0, withMiles: 0 };
+    return { cpm: spend / miles, spend: spend, miles: miles, withMiles: withMiles };
+  }
+  function updateBreakEvenDisplay() {
+    var fixed = num($('beFixed') && $('beFixed').value);
+    var miles = num($('beMiles') && $('beMiles').value);
+    var be = (miles > 0) ? (fixed / miles) : null;
+    if ($('beRate')) $('beRate').textContent = be != null ? money(be) + '/mi' : '\u2014';
+    if ($('beAllMiles')) $('beAllMiles').textContent = lastAllMilesRate != null ? money(lastAllMilesRate) + '/mi' : '\u2014';
+    var verd = $('beVerdict');
+    if (verd) {
+      if (be == null || lastAllMilesRate == null) {
+        verd.textContent = '\u2014';
+        verd.style.color = '';
+      } else if (lastAllMilesRate + 1e-9 >= be) {
+        verd.textContent = 'Yes \u2014 clears by ' + money(lastAllMilesRate - be) + '/mi';
+        verd.style.color = 'var(--good)';
+      } else {
+        verd.textContent = 'No \u2014 short ' + money(be - lastAllMilesRate) + '/mi';
+        verd.style.color = '#ff8a8a';
+      }
+    }
+    var fc = fuelCpmFromLog();
+    if ($('fuelCpmOut')) $('fuelCpmOut').textContent = fc.cpm != null ? money(fc.cpm) + '/mi' : '\u2014';
+    if ($('fuelCpmHint')) {
+      if (fc.cpm != null) $('fuelCpmHint').textContent = 'Fuel spend ' + money(fc.spend) + ' \u00f7 ' + intn(fc.miles) + ' logged mi (' + fc.withMiles + ' fill-ups with miles).';
+      else $('fuelCpmHint').textContent = 'Add "Miles this fill" on fuel entries to compute fuel CPM.';
+    }
+  }
+  function bePersistFromInputs() {
+    beWrite({
+      fixed: $('beFixed') ? $('beFixed').value : '',
+      miles: $('beMiles') ? $('beMiles').value : ''
+    });
+    updateBreakEvenDisplay();
+  }
+  function bindBreakEven() {
+    var cfg = beRead();
+    if ($('beFixed') && cfg.fixed != null && cfg.fixed !== '') $('beFixed').value = cfg.fixed;
+    if ($('beMiles') && cfg.miles != null && cfg.miles !== '') $('beMiles').value = cfg.miles;
+    ['beFixed', 'beMiles'].forEach(function (id) {
+      var el = $(id);
+      if (el) {
+        el.addEventListener('input', bePersistFromInputs);
+        el.addEventListener('change', bePersistFromInputs);
+      }
+    });
+    updateBreakEvenDisplay();
+  }
+
+  function fuelFillTestExample() {
+    if ($('fuelDate')) $('fuelDate').value = fuelTodayLocal();
+    if ($('fuelLocation')) $('fuelLocation').value = "Cortez Love's #850";
+    if ($('fuelGal')) $('fuelGal').value = '100';
+    if ($('fuelPump')) $('fuelPump').value = '5.4356';
+    if ($('fuelCompare')) $('fuelCompare').value = '6.1890';
+    if ($('fuelMiles')) $('fuelMiles').value = '';
+    fuelMethodHint = 'manual';
+    fuelPendingPhoto = '';
+    fuelShowPending('', '');
+    fuelUpdatePreview();
+    var save = fuelSavingsDollars(5.4356, 6.1890, 100);
+    fuelSetMsg('Example filled. Expected savings ' + money(save) + ' (should be $75.34). Tap Add fill-up to save.', 'warn');
+  }
+
+  /* ---- Detention Tracker ---- */
+  function detRead() {
+    try {
+      var raw = localStorage.getItem(DET_STORE);
+      var arr = raw ? JSON.parse(raw) : [];
+      detentionLog = Array.isArray(arr) ? arr.filter(function (r) { return r && r.id; }) : [];
+    } catch (e) { detentionLog = []; }
+  }
+  function detWrite() {
+    try { localStorage.setItem(DET_STORE, JSON.stringify(detentionLog)); return true; }
+    catch (e) { return false; }
+  }
+  function detCfgRead() {
+    try {
+      var raw = localStorage.getItem(DET_CFG_STORE);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function detCfgWrite(obj) {
+    try { localStorage.setItem(DET_CFG_STORE, JSON.stringify(obj)); } catch (e) {}
+  }
+  function detParseLocal(v) {
+    if (!v) return null;
+    var d = new Date(v);
+    return isFinite(d.getTime()) ? d : null;
+  }
+  function detCalc() {
+    var a = detParseLocal($('detArrive') && $('detArrive').value);
+    var b = detParseLocal($('detDepart') && $('detDepart').value);
+    var rate = Math.max(0, num($('detRate') && $('detRate').value));
+    var freeH = Math.max(0, num($('detFree') && $('detFree').value));
+    if (!a || !b || !(b > a)) return null;
+    var hours = (b.getTime() - a.getTime()) / 3600000;
+    var billable = Math.max(0, hours - freeH);
+    var pay = cents(billable * rate);
+    return { hours: hours, billable: billable, rate: rate, freeH: freeH, pay: pay, arrive: a, depart: b };
+  }
+  function detUpdatePreview() {
+    var c = detCalc();
+    var el = $('detPreview');
+    if (!el) return;
+    if (!c) { el.textContent = 'Billable: \u2014 \u00b7 Pay: \u2014'; return; }
+    el.textContent = 'On site ' + c.hours.toFixed(2) + ' h \u2212 ' + c.freeH + ' free = ' + c.billable.toFixed(2) + ' billable \u00b7 Pay: ' + money(c.pay);
+  }
+  function detSetMsg(t, kind) {
+    var el = $('detMsg');
+    if (!el) return;
+    el.textContent = t || '';
+    el.className = 'note' + (kind === 'neg' ? ' neg' : kind === 'warn' ? ' warn' : '');
+  }
+  function detAdd() {
+    var c = detCalc();
+    if (!c) { detSetMsg('Enter arrival and departure (departure after arrival).', 'warn'); return; }
+    if (!(c.rate > 0)) { detSetMsg('Enter pay rate $/hr.', 'warn'); return; }
+    var entry = {
+      id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      arrive: c.arrive.toISOString(),
+      depart: c.depart.toISOString(),
+      hours: c.hours,
+      freeHours: c.freeH,
+      billable: c.billable,
+      rate: c.rate,
+      pay: c.pay,
+      at: new Date().toISOString()
+    };
+    detentionLog.unshift(entry);
+    if (!detWrite()) {
+      detentionLog.shift();
+      detSetMsg('Could not save — browser storage full.', 'neg');
+      return;
+    }
+    detCfgWrite({ rate: String(c.rate), free: String(c.freeH) });
+    detSetMsg('Detention saved: ' + money(c.pay));
+    renderDetention();
+  }
+  function detDelete(id) {
+    detentionLog = detentionLog.filter(function (r) { return !(r && r.id === id); });
+    detWrite();
+    renderDetention();
+    detSetMsg('Deleted.');
+  }
+  function renderDetention() {
+    var now = new Date();
+    var y = now.getFullYear(), mo = now.getMonth();
+    var monthPay = 0, monthCount = 0;
+    var ordered = detentionLog.slice().sort(function (a, b) {
+      return String(b.arrive || '') < String(a.arrive || '') ? -1 : 1;
+    });
+    ordered.forEach(function (r) {
+      var d = r && r.arrive ? new Date(r.arrive) : null;
+      if (!d || !isFinite(d.getTime())) return;
+      if (d.getFullYear() === y && d.getMonth() === mo) {
+        monthPay += cents(num(r.pay));
+        monthCount++;
+      }
+    });
+    if ($('detMonthTotal')) $('detMonthTotal').textContent = money(cents(monthPay));
+    if ($('detMonthCount')) $('detMonthCount').textContent = monthCount + (monthCount === 1 ? ' stop' : ' stops');
+    var list = $('detList');
+    if (!list) return;
+    if (!ordered.length) {
+      list.innerHTML = '<p class="note">No detention logged yet.</p>';
+      return;
+    }
+    list.innerHTML = ordered.map(function (r) {
+      var a = r.arrive ? new Date(r.arrive) : null;
+      var b = r.depart ? new Date(r.depart) : null;
+      var aTxt = a && isFinite(a.getTime()) ? a.toLocaleString() : '\u2014';
+      var bTxt = b && isFinite(b.getTime()) ? b.toLocaleString() : '\u2014';
+      return '<div class="det-row" data-det-id="' + esc(r.id) + '">' +
+        '<div class="grow">' +
+          '<div class="lane">' + money(num(r.pay)) + ' \u00b7 ' + Number(r.billable).toFixed(2) + ' billable h @ ' + money(num(r.rate)) + '/hr</div>' +
+          '<div class="meta">' + esc(aTxt) + ' \u2192 ' + esc(bTxt) + ' \u00b7 on site ' + Number(r.hours).toFixed(2) + ' h (free ' + Number(r.freeHours) + ')</div>' +
+        '</div>' +
+        '<button type="button" class="btn-del" data-det-del="' + esc(r.id) + '">Delete</button>' +
+      '</div>';
+    }).join('');
+  }
+  function bindDetention() {
+    detRead();
+    var cfg = detCfgRead();
+    if ($('detRate') && cfg.rate != null && cfg.rate !== '' && !$('detRate').value) $('detRate').value = cfg.rate;
+    if ($('detFree')) {
+      if (cfg.free != null && cfg.free !== '') $('detFree').value = cfg.free;
+      else if (!$('detFree').value) $('detFree').value = '2';
+    }
+    ['detArrive', 'detDepart', 'detRate', 'detFree'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('input', function () {
+        detUpdatePreview();
+        if (id === 'detRate' || id === 'detFree') {
+          detCfgWrite({
+            rate: $('detRate') ? $('detRate').value : '',
+            free: $('detFree') ? $('detFree').value : '2'
+          });
+        }
+      });
+    });
+    if ($('btnDetAdd')) $('btnDetAdd').addEventListener('click', detAdd);
+    if ($('btnDetClear')) $('btnDetClear').addEventListener('click', function () {
+      if ($('detArrive')) $('detArrive').value = '';
+      if ($('detDepart')) $('detDepart').value = '';
+      detUpdatePreview();
+      detSetMsg('');
+    });
+    var list = $('detList');
+    if (list) list.addEventListener('click', function (e) {
+      var t = e.target;
+      while (t && t !== list && !(t.getAttribute && t.getAttribute('data-det-del'))) t = t.parentNode;
+      if (!t || t === list) return;
+      var id = t.getAttribute('data-det-del');
+      if (id) detDelete(id);
+    });
+    detUpdatePreview();
+    renderDetention();
+  }
+
+  /* ---- Maintenance Log ---- */
+  function maintRead() {
+    try {
+      var raw = localStorage.getItem(MAINT_STORE);
+      var arr = raw ? JSON.parse(raw) : [];
+      maintLog = Array.isArray(arr) ? arr.filter(function (r) { return r && r.id; }) : [];
+    } catch (e) { maintLog = []; }
+  }
+  function maintWrite() {
+    try { localStorage.setItem(MAINT_STORE, JSON.stringify(maintLog)); return true; }
+    catch (e) { return false; }
+  }
+  function maintSetMsg(t, kind) {
+    var el = $('maintMsg');
+    if (!el) return;
+    el.textContent = t || '';
+    el.className = 'note' + (kind === 'neg' ? ' neg' : kind === 'warn' ? ' warn' : '');
+  }
+  function maintAdd() {
+    var date = $('maintDate') && $('maintDate').value;
+    var miles = num($('maintMiles') && $('maintMiles').value);
+    var item = $('maintItem') && $('maintItem').value ? String($('maintItem').value).trim() : '';
+    var cost = num($('maintCost') && $('maintCost').value);
+    if (!date) { maintSetMsg('Pick a date.', 'warn'); return; }
+    if (!(miles > 0)) { maintSetMsg('Enter mileage.', 'warn'); return; }
+    if (!item) { maintSetMsg('Enter the item (oil change, tires…).', 'warn'); return; }
+    if (!(cost >= 0) || ($('maintCost') && $('maintCost').value === '')) {
+      maintSetMsg('Enter cost.', 'warn'); return;
+    }
+    var entry = {
+      id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      date: date,
+      mileage: miles,
+      item: item,
+      cost: cents(cost),
+      at: new Date().toISOString()
+    };
+    maintLog.unshift(entry);
+    if (!maintWrite()) {
+      maintLog.shift();
+      maintSetMsg('Could not save — browser storage full.', 'neg');
+      return;
+    }
+    if ($('maintItem')) $('maintItem').value = '';
+    if ($('maintCost')) $('maintCost').value = '';
+    maintSetMsg('Saved.');
+    renderMaint();
+  }
+  function maintDelete(id) {
+    maintLog = maintLog.filter(function (r) { return !(r && r.id === id); });
+    maintWrite();
+    renderMaint();
+    maintSetMsg('Deleted.');
+  }
+  function renderMaint() {
+    var total = 0;
+    var mileVals = [];
+    maintLog.forEach(function (r) {
+      total += cents(num(r.cost));
+      var m = num(r.mileage);
+      if (m > 0) mileVals.push(m);
+    });
+    if ($('maintTotal')) $('maintTotal').textContent = money(cents(total));
+    if ($('maintCount')) $('maintCount').textContent = maintLog.length + (maintLog.length === 1 ? ' entry' : ' entries');
+    var cpmEl = $('maintCpm'), hint = $('maintCpmHint');
+    if (mileVals.length >= 2) {
+      var mn = Math.min.apply(null, mileVals), mx = Math.max.apply(null, mileVals);
+      var span = mx - mn;
+      if (span > 0) {
+        if (cpmEl) cpmEl.textContent = money(total / span) + '/mi';
+        if (hint) hint.textContent = intn(mn) + ' \u2192 ' + intn(mx) + ' mi span';
+      } else {
+        if (cpmEl) cpmEl.textContent = '\u2014';
+        if (hint) hint.textContent = 'mileage span is 0';
+      }
+    } else {
+      if (cpmEl) cpmEl.textContent = '\u2014';
+      if (hint) hint.textContent = 'needs 2+ mileage points';
+    }
+    var list = $('maintList');
+    if (!list) return;
+    if (!maintLog.length) {
+      list.innerHTML = '<p class="note">No maintenance logged yet.</p>';
+      return;
+    }
+    var ordered = maintLog.slice().sort(function (a, b) {
+      var da = String(a.date || ''), db = String(b.date || '');
+      if (da !== db) return db < da ? -1 : 1;
+      return String(b.at || '') < String(a.at || '') ? -1 : 1;
+    });
+    list.innerHTML = ordered.map(function (r) {
+      return '<div class="maint-row" data-maint-id="' + esc(r.id) + '">' +
+        '<div class="grow">' +
+          '<div class="lane">' + esc(r.item) + ' \u00b7 ' + money(num(r.cost)) + '</div>' +
+          '<div class="meta">' + esc(r.date) + ' \u00b7 ' + intn(num(r.mileage)) + ' mi</div>' +
+        '</div>' +
+        '<button type="button" class="btn-del" data-maint-del="' + esc(r.id) + '">Delete</button>' +
+      '</div>';
+    }).join('');
+  }
+  function bindMaint() {
+    maintRead();
+    if ($('maintDate') && !$('maintDate').value) $('maintDate').value = fuelTodayLocal();
+    if ($('btnMaintAdd')) $('btnMaintAdd').addEventListener('click', maintAdd);
+    if ($('btnMaintClear')) $('btnMaintClear').addEventListener('click', function () {
+      if ($('maintDate')) $('maintDate').value = fuelTodayLocal();
+      if ($('maintMiles')) $('maintMiles').value = '';
+      if ($('maintItem')) $('maintItem').value = '';
+      if ($('maintCost')) $('maintCost').value = '';
+      maintSetMsg('');
+    });
+    var list = $('maintList');
+    if (list) list.addEventListener('click', function (e) {
+      var t = e.target;
+      while (t && t !== list && !(t.getAttribute && t.getAttribute('data-maint-del'))) t = t.parentNode;
+      if (!t || t === list) return;
+      var id = t.getAttribute('data-maint-del');
+      if (id) maintDelete(id);
+    });
+    renderMaint();
+  }
 
 
   /* ---- Fuel Savings Log (local only; never shared-loads) ---- */
@@ -3400,6 +3956,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       else $('fuelCompare').value = '';
     }
     if ($('fuelLocation')) $('fuelLocation').value = '';
+    if ($('fuelMiles')) $('fuelMiles').value = '';
     if ($('fuelPhoto')) try { $('fuelPhoto').value = ''; } catch (e2) {}
     fuelPendingPhoto = '';
     fuelMethodHint = 'manual';
@@ -3439,6 +3996,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       fuelSetMsg('');
     }
     var method = (photo || fuelMethodHint === 'photo') ? 'photo' : 'manual';
+    var milesFill = num($('fuelMiles') && $('fuelMiles').value);
     var entry = {
       id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       date: date,
@@ -3447,6 +4005,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       price_paid: pricePaid,
       rack_price: rack > 0 ? rack : 0,
       savings: fuelSavingsDollars(pricePaid, rack, gal),
+      miles: milesFill > 0 ? milesFill : undefined,
       method: method,
       photo: photo || undefined,
       at: new Date().toISOString()
@@ -3472,12 +4031,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     fuelClearForm(true);
     if ($('fuelCompare') && rack > 0) $('fuelCompare').value = String(rack);
     renderFuelLog();
+    updateBreakEvenDisplay();
     if (!$('fuelMsg').textContent) fuelSetMsg('Fill-up saved.');
   }
   function fuelDelete(id) {
     fuelLog = fuelLog.filter(function (r) { return !(r && r.id === id); });
     fuelWrite();
     renderFuelLog();
+    updateBreakEvenDisplay();
     fuelSetMsg('Deleted.');
   }
   function renderFuelLog() {
@@ -3511,13 +4072,14 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       var locHtml = loc ? '<div class="meta">' + esc(loc) + '</div>' : '';
       var price = fuelEntryPricePaid(r);
       var rack = fuelEntryRack(r);
-      var rackBit = rack > 0 ? (' · rack ' + money(rack) + '/gal') : '';
+      var rackBit = rack > 0 ? (' · rack ' + money4(rack) + '/gal') : '';
       var sav = cents(num(r.savings));
       var savWord = sav < 0 ? 'Over ' : 'Saved ';
+      var milesBit = num(r.miles) > 0 ? (' · ' + intn(num(r.miles)) + ' mi') : '';
       return '<div class="fuel-row" data-fuel-id="' + esc(r.id) + '">' +
         thumb +
         '<div class="grow">' +
-          '<div class="lane">' + esc(r.date) + ' · ' + money(price) + '/gal · ' + esc(String(r.gallons)) + ' gal</div>' +
+          '<div class="lane">' + esc(r.date) + ' · ' + money4(price) + '/gal · ' + esc(String(r.gallons)) + ' gal' + milesBit + '</div>' +
           '<div class="save">' + savWord + money(Math.abs(sav)) + rackBit + '</div>' +
           locHtml +
         '</div>' +
@@ -3542,6 +4104,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
     if ($('btnFuelAdd')) $('btnFuelAdd').addEventListener('click', fuelAdd);
     if ($('btnFuelClearForm')) $('btnFuelClearForm').addEventListener('click', function () { fuelClearForm(false); });
+    if ($('btnFuelTestExample')) $('btnFuelTestExample').addEventListener('click', fuelFillTestExample);
     if ($('fuelPhoto')) $('fuelPhoto').addEventListener('change', function () {
       var f = $('fuelPhoto').files && $('fuelPhoto').files[0];
       if (f) fuelOnPhoto(f);
@@ -3556,6 +4119,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     });
     fuelUpdatePreview();
     renderFuelLog();
+    updateBreakEvenDisplay();
   }
 
 
