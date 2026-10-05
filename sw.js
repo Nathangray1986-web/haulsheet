@@ -1,5 +1,5 @@
 /* Haul Sheet app shell. Bump CACHE to refresh installed copies. */
-var CACHE = 'haul-sheet-shell-v17';
+var CACHE = 'haul-sheet-shell-v18';
 var SHELL = [
   './',
   './index.html',
@@ -42,15 +42,29 @@ self.addEventListener('fetch', function (event) {
     return;
   }
   if (req.mode === 'navigate') {
+    /* Cache each page under its own key so computer.html never overwrites index.html. */
+    var path = '';
+    try { path = new URL(req.url).pathname; } catch (e) {}
+    var key = /\/computer\.html$/i.test(path) ? './computer.html'
+      : (/\/$/.test(path) || /\/index\.html$/i.test(path)) ? './index.html'
+      : null;
     event.respondWith(
-      fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (cache) {
-          cache.put('./index.html', copy);
-        });
+      (key ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(function (res) {
+        return (res && res.redirected) ? fetch(req) : res;
+      }, function () {
+        return fetch(req);
+      }) : fetch(req)).then(function (res) {
+        if (key && res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (cache) {
+            cache.put(key, copy);
+          });
+        }
         return res;
       }).catch(function () {
-        return caches.match('./index.html').then(function (hit) {
+        return caches.match(key || req).then(function (hit) {
+          return hit || caches.match('./index.html');
+        }).then(function (hit) {
           return hit || caches.match('./');
         });
       })

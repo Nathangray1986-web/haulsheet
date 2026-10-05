@@ -239,6 +239,12 @@
     .tool-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.45rem 0; }
     .tool-row .btn { flex: 0 0 auto; }
     .be-compare { margin: 0.45rem 0 0.25rem; }
+    .total-miles { color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .scroll-note { color: var(--muted); font-size: 0.82rem; margin: 0.35rem 0 0; }
+    .fuel-cpm-box .v { color: var(--fg); }
+    .det-times > label { min-width: 0; }
+    .det-times input[type="datetime-local"] { min-width: 0; max-width: 100%; }
+    .row2.det-times { grid-template-columns: 1fr; }
     .be-compare .line { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.35rem 0; border-top: 1px solid var(--line); }
     .be-compare .line:first-child { border-top: 0; }
     input[type="datetime-local"] {
@@ -268,6 +274,7 @@
 </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <meta name="haul-sheet-build" content="v18" />
 </head>
 <body>
 <main>
@@ -316,7 +323,7 @@
           <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
           <label><span>Deadhead miles</span><input id="deadhead" type="number" inputmode="decimal" min="0" step="1" value="" /></label>
         </div>
-        <p class="note" id="oTotalMilesLine">Total miles (loaded + deadhead): —</p>
+        <p class="note total-miles" id="oTotalMilesLine">Total miles (loaded + deadhead): —</p>
         <div class="row3">
           <label><span>Truck MPG</span><input id="mpg" type="number" inputmode="decimal" min="0" step="0.1" value="6.5" /></label>
           <label><span>Diesel $/gal</span><input id="dieselGal" type="number" inputmode="decimal" min="0" step="0.001" value="" placeholder="or from fuel stops" /></label>
@@ -356,6 +363,8 @@
             <div class="s" id="oAllMilesHint">includes 0 deadhead miles.</div>
           </div>
         </div>
+        <div class="line"><span>Fuel cost / mile (fuel log ÷ this load&apos;s miles)</span><strong id="oFuelCpm">—</strong></div>
+        <p class="scroll-note">Scroll down for Break-even, Detention, and Maintenance.</p>
       </div>
   
       <div class="card">
@@ -431,7 +440,7 @@
       </div>
       <div class="row2">
         <label><span>Rack price ($/gal)</span><input id="fuelCompare" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="6.1890" /></label>
-        <label><span>Miles this fill (optional)</span><input id="fuelMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 650" /></label>
+        <label><span>Miles this fill (optional, not needed for fuel CPM)</span><input id="fuelMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 650" /></label>
       </div>
       <label><span>Pump photo (optional)</span>
         <input id="fuelPhoto" type="file" accept="image/*" capture="environment" aria-label="Pump sign photo" />
@@ -457,27 +466,33 @@
   <div class="card" id="breakEvenCard">
     <details class="fuel-details" open>
       <summary>Break-even &amp; fuel cost / mile</summary>
-      <p class="hint">Monthly fixed costs ÷ average miles = break-even $/mi. Compared to this load&apos;s all-miles keep rate. Fuel CPM comes from Fuel Savings Log entries that include miles.</p>
+      <p class="hint">Monthly fixed costs ÷ average miles = break-even $/mi. Compared to this load&apos;s all-miles keep rate. Fuel cost / mile = total fuel spend in Fuel Savings Log (price paid × gallons) ÷ this load&apos;s total miles (loaded + deadhead).</p>
       <div class="row2">
         <label><span>Monthly fixed costs $</span><input id="beFixed" type="number" inputmode="decimal" min="0" step="1" placeholder="insurance, truck, ELD…" /></label>
-        <label><span>Avg miles / month</span><input id="beMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="10000" /></label>
+        <label><span>Miles per month (avg)</span><input id="beMiles" type="number" inputmode="decimal" min="0" step="1" placeholder="10000" /></label>
       </div>
       <div class="be-compare">
         <div class="line"><span>Break-even $/mi</span><strong id="beRate">—</strong></div>
         <div class="line"><span>This load all-miles rate</span><strong id="beAllMiles">—</strong></div>
         <div class="line"><span>Clears break-even?</span><strong id="beVerdict">—</strong></div>
-        <div class="line"><span>Fuel cost / mile (from log)</span><strong id="fuelCpmOut">—</strong></div>
       </div>
-      <p class="note" id="fuelCpmHint">Add &quot;Miles this fill&quot; on fuel entries to compute fuel CPM.</p>
+      <div class="fuel-totals">
+        <div class="fuel-tot fuel-cpm-box">
+          <div class="k">Fuel cost / mile</div>
+          <div class="v" id="fuelCpmOut">—</div>
+          <div class="s">fuel log spend ÷ this load&apos;s miles</div>
+        </div>
+      </div>
+      <p class="note" id="fuelCpmHint">Add fill-ups in Fuel Savings Log and enter loaded/deadhead miles above.</p>
       <p class="note" id="beMsg"></p>
     </details>
   </div>
 
   <div class="card" id="detentionCard">
-    <details class="fuel-details">
+    <details class="fuel-details" open>
       <summary>Detention Tracker</summary>
       <p class="hint">Hours on site minus free time × hourly rate. Running monthly total stays in this browser only.</p>
-      <div class="row2">
+      <div class="row2 det-times">
         <label><span>Arrival</span><input id="detArrive" type="datetime-local" /></label>
         <label><span>Departure</span><input id="detDepart" type="datetime-local" /></label>
       </div>
@@ -503,7 +518,7 @@
   </div>
 
   <div class="card" id="maintCard">
-    <details class="fuel-details">
+    <details class="fuel-details" open>
       <summary>Maintenance Log</summary>
       <p class="hint">Date, mileage, item, cost. Cost per mile uses max − min mileage once you have two mileage points.</p>
       <div class="row2">
@@ -3398,6 +3413,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
   var DET_CFG_STORE = 'haulSheetDetentionCfg';
   var MAINT_STORE = 'haulSheetMaintLog';
   var lastAllMilesRate = null;
+  var lastTotalMiles = 0;
   var lastNetPay = 0;
   var detentionLog = [];
   var maintLog = [];
@@ -3418,9 +3434,11 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     var loaded = Math.max(0, num(s.loadedMiles));
     var dh = Math.max(0, num(s.deadheadMiles));
     var total = Math.max(0, num(s.totalMiles));
+    if (!(total > 0)) total = loaded + dh;
+    lastTotalMiles = total;
     var totEl = $('oTotalMilesLine');
     if (totEl) {
-      if (loaded > 0 || dh > 0) totEl.textContent = 'Total miles (loaded + deadhead): ' + intn(total) + ' mi';
+      if (loaded > 0 || dh > 0) totEl.textContent = 'Total miles (loaded + deadhead): ' + intn(loaded) + ' + ' + intn(dh) + ' = ' + intn(total) + ' mi';
       else totEl.textContent = 'Total miles (loaded + deadhead): \u2014';
     }
     var loadedRate = loaded > 0 ? pay / loaded : null;
@@ -3431,7 +3449,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if (lr) lr.textContent = loadedRate != null ? money(loadedRate) + '/mi' : '\u2014';
     if (ar) ar.textContent = allRate != null ? money(allRate) + '/mi' : '\u2014';
     if (lh) lh.textContent = loaded > 0 ? ('pay \u00f7 ' + intn(loaded) + ' loaded mi') : 'pay \u00f7 loaded miles';
-    if (ah) ah.textContent = 'includes ' + intn(dh) + ' deadhead miles.';
+    if (ah) ah.textContent = dh > 0 ? ('pay ÷ ' + intn(total) + ' mi (includes ' + intn(dh) + ' deadhead)') : 'no deadhead — same as loaded rate';
     updateBreakEvenDisplay();
   }
 
@@ -3445,17 +3463,17 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     try { localStorage.setItem(BE_STORE, JSON.stringify(obj)); } catch (e) {}
   }
   function fuelCpmFromLog() {
-    var spend = 0, miles = 0, withMiles = 0;
+    var spend = 0, fills = 0;
     fuelLog.forEach(function (r) {
       if (!r) return;
       var gal = Math.max(0, num(r.gallons));
       var paid = Math.max(0, fuelEntryPricePaid(r));
-      spend += paid * gal;
-      var m = num(r.miles);
-      if (m > 0) { miles += m; withMiles++; }
+      if (gal > 0 && paid > 0) { spend += paid * gal; fills++; }
     });
-    if (!(miles > 0)) return { cpm: null, spend: spend, miles: 0, withMiles: 0 };
-    return { cpm: spend / miles, spend: spend, miles: miles, withMiles: withMiles };
+    spend = cents(spend);
+    var miles = Math.max(0, num(lastTotalMiles));
+    if (!(spend > 0) || !(miles > 0)) return { cpm: null, spend: spend, miles: miles, fills: fills };
+    return { cpm: spend / miles, spend: spend, miles: miles, fills: fills };
   }
   function updateBreakEvenDisplay() {
     var fixed = num($('beFixed') && $('beFixed').value);
@@ -3469,18 +3487,21 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
         verd.textContent = '\u2014';
         verd.style.color = '';
       } else if (lastAllMilesRate + 1e-9 >= be) {
-        verd.textContent = 'Yes \u2014 clears by ' + money(lastAllMilesRate - be) + '/mi';
+        verd.textContent = 'Clears \u2014 ' + money(lastAllMilesRate - be) + '/mi above break-even';
         verd.style.color = 'var(--good)';
       } else {
-        verd.textContent = 'No \u2014 short ' + money(be - lastAllMilesRate) + '/mi';
+        verd.textContent = 'Short \u2014 ' + money(be - lastAllMilesRate) + '/mi below break-even';
         verd.style.color = '#ff8a8a';
       }
     }
     var fc = fuelCpmFromLog();
-    if ($('fuelCpmOut')) $('fuelCpmOut').textContent = fc.cpm != null ? money(fc.cpm) + '/mi' : '\u2014';
+    var cpmTxt = fc.cpm != null ? money(fc.cpm) + '/mi' : '\u2014';
+    if ($('fuelCpmOut')) $('fuelCpmOut').textContent = cpmTxt;
+    if ($('oFuelCpm')) $('oFuelCpm').textContent = cpmTxt;
     if ($('fuelCpmHint')) {
-      if (fc.cpm != null) $('fuelCpmHint').textContent = 'Fuel spend ' + money(fc.spend) + ' \u00f7 ' + intn(fc.miles) + ' logged mi (' + fc.withMiles + ' fill-ups with miles).';
-      else $('fuelCpmHint').textContent = 'Add "Miles this fill" on fuel entries to compute fuel CPM.';
+      if (fc.cpm != null) $('fuelCpmHint').textContent = 'Fuel spend ' + money(fc.spend) + ' (' + fc.fills + (fc.fills === 1 ? ' fill-up' : ' fill-ups') + ') \u00f7 ' + intn(fc.miles) + ' mi this load (loaded + deadhead).';
+      else if (!(fc.spend > 0)) $('fuelCpmHint').textContent = 'No fuel spend yet \u2014 add fill-ups in Fuel Savings Log.';
+      else $('fuelCpmHint').textContent = 'Fuel spend ' + money(fc.spend) + ' \u2014 enter loaded/deadhead miles above to get $/mi.';
     }
   }
   function bePersistFromInputs() {
@@ -3516,7 +3537,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     fuelShowPending('', '');
     fuelUpdatePreview();
     var save = fuelSavingsDollars(5.4356, 6.1890, 100);
-    fuelSetMsg('Example filled. Expected savings ' + money(save) + ' (should be $75.34). Tap Add fill-up to save.', 'warn');
+    fuelSetMsg('Example filled: rack ' + money4(6.1890) + ' \u2212 paid ' + money4(5.4356) + ' = ' + money4(6.1890 - 5.4356) + '/gal \u00d7 100 gal = savings ' + money(save) + ' (expected $75.34). Tap Add fill-up to save it.', 'warn');
   }
 
   /* ---- Detention Tracker ---- */
