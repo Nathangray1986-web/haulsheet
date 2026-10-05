@@ -2613,6 +2613,17 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
 
   /* ---- load log (local only) ---- */
   var LOG_STORE = 'haulSheetLoadLog_v1';
+  var DISMISS_STORE = 'haulSheetDismissed';
+  function readDismissed() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(DISMISS_STORE) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch (e) { return {}; }
+  }
+  function writeDismissed(map) {
+    try { localStorage.setItem(DISMISS_STORE, JSON.stringify(map || {})); }
+    catch (e) { logSay('Could not remember deleted loads in this browser.'); }
+  }
   var loadLog = [];
   var logPick = {};
   var openLogId = null;
@@ -2867,6 +2878,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
       }
       var have = {};
       loadLog.forEach(function (r) { if (r && r.id) have[r.id] = r; });
+      var dismissed = readDismissed();
       var added = 0;
       var changed = false;
       for (var i = arr.length - 1; i >= 0; i--) {
@@ -2877,6 +2889,7 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
           if (applySharedContact(have[id], raw)) changed = true;
           continue;
         }
+        if (dismissed[id]) continue;
         var entry = sharedEntry(raw);
         if (!entry) continue;
         loadLog.unshift(entry);
@@ -3137,6 +3150,13 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     if (!window.confirm('Delete ' + ids.length + ' load' + (ids.length === 1 ? '' : 's') + ' from the log?')) return;
     var drop = {};
     ids.forEach(function (id) { drop[id] = true; delete logPick[id]; });
+    var dismissed = readDismissed();
+    var remembered = false;
+    loadLog.forEach(function (r) {
+      if (!r || !drop[r.id]) return;
+      if (r.source === 'tracker') { dismissed[String(r.id)] = true; remembered = true; }
+    });
+    if (remembered) writeDismissed(dismissed);
     loadLog = loadLog.filter(function (r) { return !drop[r.id]; });
     loadLogWrite();
     logSay('Deleted ' + ids.length + '.');
