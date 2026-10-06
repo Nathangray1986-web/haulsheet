@@ -271,10 +271,29 @@
       color: var(--fg); font-size: 0.92rem; line-height: 1.4;
     }
     .fuel-warn strong { color: #e6b84d; }
+
+    /* Shell tabs: one row, one panel visible; hidden panels stay in DOM */
+    .shell-tabs {
+      display: flex; flex-wrap: nowrap; gap: 0.4rem;
+      margin: 0.35rem 0 0.75rem; padding-bottom: 0.15rem;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .shell-tabs button {
+      flex: 0 0 auto; border: 1px solid var(--line); background: var(--raised);
+      color: var(--fg); border-radius: 999px; padding: 0.55rem 1rem;
+      font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .shell-tabs button[aria-selected="true"] {
+      background: var(--accent); color: var(--ink); border-color: var(--accent);
+    }
+    .shell-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .tab-panels { margin-bottom: 0.5rem; }
+    .tab-panel[hidden] { display: none !important; }
 </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <meta name="haul-sheet-build" content="v18" />
+  <meta name="haul-sheet-build" content="v20" />
 </head>
 <body>
 <main>
@@ -298,10 +317,8 @@
       <img id="shotPreview" class="drop-preview" alt="Screenshot preview" hidden />
       <p class="drop-note" id="shotNote">Reading runs in this browser with Tesseract. No Truckstop login. No booking.</p>
     </div>
-    <div id="boardOut"></div>
-  
       <div class="card" id="moneyCard">
-        <h2>Pay after the cut</h2>
+        <h2>This load</h2>
         <div class="toggles">
           <button type="button" id="srcLease" class="on">Lease cut</button>
           <button type="button" id="srcBennett">Bennett (0% cut)</button>
@@ -310,8 +327,24 @@
           <label><span>Origin</span><input id="origin" type="text" placeholder="City, ST" autocomplete="off" /></label>
           <label><span>Destination</span><input id="destination" type="text" placeholder="City, ST" autocomplete="off" /></label>
         </div>
-        <div class="row3">
+        <div class="row2">
           <label><span>Rate $ (whole load)</span><input id="linehaul" type="number" inputmode="decimal" min="0" step="0.01" value="1000" /></label>
+          <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
+        </div>
+      </div>
+  
+
+    <div class="shell-tabs" id="shellTabs" role="tablist" aria-label="Haul Sheet sections">
+      <button type="button" role="tab" id="tabPay" aria-controls="panelPay" aria-selected="true">Pay</button>
+      <button type="button" role="tab" id="tabRoute" aria-controls="panelRoute" aria-selected="false" tabindex="-1">Route</button>
+      <button type="button" role="tab" id="tabRoad" aria-controls="panelRoad" aria-selected="false" tabindex="-1">Road</button>
+      <button type="button" role="tab" id="tabLog" aria-controls="panelLog" aria-selected="false" tabindex="-1">Log</button>
+    </div>
+    <div class="tab-panels">
+      <div class="tab-panel" id="panelPay" role="tabpanel" aria-labelledby="tabPay">
+      <div class="card" id="payInputsCard">
+        <h2>Cut &amp; trip costs</h2>
+        <div class="row2">
           <label><span>FSC $/loaded mi</span><input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" value="1.00" /></label>
           <label><span>Tarp / other $</span><input id="accessorials" type="number" inputmode="decimal" min="0" step="0.01" value="0" /></label>
         </div>
@@ -320,8 +353,8 @@
         </div>
         <p class="hint">The rate is the whole amount the load pays. Fuel and tarp come out of it first. The cut is only on what is left, then fuel and tarp are added back. Example: rate 2000, FSC $1.00/mi × 521 mi = $521, tarp 0 → cut hits $1479, cut $365.31, keep $1634.69. The load does not pay $2521.</p>
         <div class="row2">
-          <label><span>Loaded miles</span><input id="loaded" type="number" inputmode="decimal" min="0" step="1" value="" placeholder="from screenshot" /></label>
           <label><span>Deadhead miles</span><input id="deadhead" type="number" inputmode="decimal" min="0" step="1" value="" /></label>
+          <label><span>Target $/loaded mi</span><input id="target" type="number" inputmode="decimal" min="0" step="0.01" value="0.4" /></label>
         </div>
         <p class="note total-miles" id="oTotalMilesLine">Total miles (loaded + deadhead): —</p>
         <div class="row3">
@@ -331,11 +364,7 @@
         </div>
         <label class="expense-toggle"><input type="checkbox" id="countExpenses" checked /> <span>Count tires, oil, insurance, and repairs</span></label>
         <p class="hint" id="tripCostHint">Trip cost is fuel burned plus that per-mile number, on loaded miles and deadhead. Fuel = miles ÷ MPG × diesel. If diesel is blank and fuel stops loaded, the average street price on the route is used. MPG starts at 6.5 until you change it. The tires/oil/insurance box stays blank until you set it — nothing is guessed.</p>
-        <div class="row2">
-          <label><span>Target $/loaded mi</span><input id="target" type="number" inputmode="decimal" min="0" step="0.01" value="0.4" /></label>
-        </div>
       </div>
-  
       <div class="card">
         <h2>Statement</h2>
         <div class="line"><span>Rate (what the load pays)</span><strong id="oLh">$0.00</strong></div>
@@ -364,7 +393,7 @@
           </div>
         </div>
         <div class="line"><span>Fuel cost / mile (fuel log ÷ this load&apos;s miles)</span><strong id="oFuelCpm">—</strong></div>
-        <p class="scroll-note">Scroll down for Break-even, Detention, and Maintenance.</p>
+        <p class="scroll-note">Break-even, Detention, and Maintenance are on this Pay tab.</p>
       </div>
   
       <div class="card">
@@ -379,38 +408,6 @@
           <label><span>Height</span><input id="height" type="text" placeholder="8 ft 6 in" /></label>
         </div>
         <div id="dimsOut"></div>
-      </div>
-  
-      <div class="card">
-        <h2>Route</h2>
-        <label><span>Truck starts at (optional, for deadhead)</span><input id="startCity" type="text" placeholder="City, ST" autocomplete="off" /></label>
-        <label><span>HERE API key (optional — stays in this browser only)</span><input id="here-key" type="password" placeholder="Paste key, or leave blank for highway miles" autocomplete="off" /></label>
-        <p class="hint">With a key: truck routing like Load Desk. Without: public OSRM + Nominatim, labeled highway miles (not a truck route). Key is never hardcoded.</p>
-        <button class="btn primary" type="button" id="btnRoute">Get route</button>
-        <div id="routeMap" hidden></div>
-        <div id="routeOut"></div>
-      </div>
-  
-      <div class="card">
-        <h2>Fuel stops</h2>
-        <button class="btn" type="button" id="btnFuel" hidden>Get diesel on this route</button>
-        <div id="fuelOut"></div>
-      </div>
-  
-      <div class="card">
-        <h2>Weather along the route</h2>
-        <button class="btn" type="button" id="btnWx">Refresh weather</button>
-        <div id="weatherOut"></div>
-      </div>
-  
-      <div class="card">
-        <h2>Ports &amp; weigh sites</h2>
-        <div id="poiOut"></div>
-      </div>
-  
-      <div class="card">
-        <h2>Construction (511 links)</h2>
-        <div id="workOut"></div>
       </div>
   
   <div class="card" id="fuelLogCard">
@@ -550,6 +547,47 @@
     </details>
   </div>
 
+      </div><!-- /panelPay -->
+
+      <div class="tab-panel" id="panelRoute" role="tabpanel" aria-labelledby="tabRoute" hidden>
+      <div class="card">
+        <h2>Route</h2>
+        <label><span>Truck starts at (optional, for deadhead)</span><input id="startCity" type="text" placeholder="City, ST" autocomplete="off" /></label>
+        <label><span>HERE API key (optional — stays in this browser only)</span><input id="here-key" type="password" placeholder="Paste key, or leave blank for highway miles" autocomplete="off" /></label>
+        <p class="hint">With a key: truck routing like Load Desk. Without: public OSRM + Nominatim, labeled highway miles (not a truck route). Key is never hardcoded.</p>
+        <button class="btn primary" type="button" id="btnRoute">Get route</button>
+        <div id="routeMap" hidden></div>
+        <div id="routeOut"></div>
+      </div>
+  
+      <div class="card">
+        <h2>Fuel stops</h2>
+        <button class="btn" type="button" id="btnFuel" hidden>Get diesel on this route</button>
+        <div id="fuelOut"></div>
+      </div>
+  
+      <div class="card">
+        <h2>Weather along the route</h2>
+        <button class="btn" type="button" id="btnWx">Refresh weather</button>
+        <div id="weatherOut"></div>
+      </div>
+  
+      </div><!-- /panelRoute -->
+
+      <div class="tab-panel" id="panelRoad" role="tabpanel" aria-labelledby="tabRoad" hidden>
+      <div class="card">
+        <h2>Ports &amp; weigh sites</h2>
+        <div id="poiOut"></div>
+      </div>
+  
+      <div class="card">
+        <h2>Construction (511 links)</h2>
+        <div id="workOut"></div>
+      </div>
+      </div><!-- /panelRoad -->
+
+      <div class="tab-panel" id="panelLog" role="tabpanel" aria-labelledby="tabLog" hidden>
+        <div id="boardOut"></div>
 <div class="card" id="loadLogCard">
     <h2>Load log</h2>
     <p class="hint">Worth taking, Thin, and Pass match the big box. Taken is only the loads you actually haul. Saved in this browser only.</p>
@@ -567,6 +605,8 @@
     </div>
     <div id="logList"></div>
   </div>
+      </div><!-- /panelLog -->
+    </div><!-- /tab-panels -->
   <p class="foot">Same features as the computer file. The rate is the whole pay. Fuel and extras come out before the cut, then go back in.</p>
 </main>
 
@@ -3440,6 +3480,43 @@ function ocrReadScreenshot(tsvBlock, tsvSparse) {
     };
   };
 
+
+
+  /* Shell tabs — hide panels with [hidden]; keep nodes in DOM (math/logs stay). */
+  (function () {
+    var tabs = document.getElementById('shellTabs');
+    if (!tabs) return;
+    var buttons = Array.prototype.slice.call(tabs.querySelectorAll('[role="tab"]'));
+    function show(id) {
+      buttons.forEach(function (btn) {
+        var on = btn.getAttribute('aria-controls') === id;
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        btn.tabIndex = on ? 0 : -1;
+      });
+      document.querySelectorAll('.tab-panel').forEach(function (panel) {
+        if (panel.id === id) panel.removeAttribute('hidden');
+        else panel.setAttribute('hidden', '');
+      });
+    }
+    tabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('[role="tab"]');
+      if (!btn || !tabs.contains(btn)) return;
+      show(btn.getAttribute('aria-controls'));
+    });
+    tabs.addEventListener('keydown', function (e) {
+      var i = buttons.indexOf(document.activeElement);
+      if (i < 0) return;
+      var next = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % buttons.length;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + buttons.length) % buttons.length;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = buttons.length - 1;
+      if (next < 0) return;
+      e.preventDefault();
+      buttons[next].focus();
+      show(buttons[next].getAttribute('aria-controls'));
+    });
+  })();
 
 /* Haul Sheet feature pack applied */
 
