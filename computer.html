@@ -286,10 +286,29 @@
     .shell-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .tab-panels { margin-bottom: 0.5rem; }
     .tab-panel[hidden] { display: none !important; }
+
+    /* v21 compact: first screen holds inputs + tabs */
+    h1 { font-size: 1.35rem; margin: 0.15rem 0; }
+    .sub { display: none; }
+    .hero { padding: 0.65rem 0.85rem; margin-bottom: 0.45rem; }
+    .hero .big { font-size: 1.85rem; margin: 0.1rem 0; }
+    .hero .word { font-size: 1rem; margin: 0.1rem 0 0; }
+    .hero .hint { display: none; }
+    .drop { padding: 0.45rem 0.7rem; margin-bottom: 0.45rem; }
+    .drop .hint, .drop .drop-note { display: none; }
+    .drop strong { font-size: 0.95rem; margin: 0; }
+    .choose-photo { margin: 0.25rem 0 0; }
+    .card { padding: 0.75rem; margin-bottom: 0.55rem; }
+    .shell-tabs {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--bg); padding: 0.35rem 0;
+      margin: 0.2rem 0 0.45rem;
+    }
+    #payInputsCard > p.hint, #tripCostHint, .scroll-note { display: none; }
 </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <meta name="haul-sheet-build" content="v20" />
+  <meta name="haul-sheet-build" content="v21" />
 </head>
 <body>
 <div class="wrap">
@@ -411,7 +430,7 @@
         <div id="dimsOut"></div>
       </div>
 <div class="card" id="fuelLogCard">
-    <details class="fuel-details" open>
+    <details class="fuel-details">
       <summary>Fuel Savings Log</summary>
       <p class="hint">Savings = (rack − price paid) × gallons. Photos stay in this browser only.</p>
       <p class="fuel-warn"><strong>LESS-IFTA price:</strong> Log what you actually pay at the pump (the LESS-IFTA / after-IFTA price), <em>not</em> the EFS pin price. Logging the pin only captures the card discount and misses the IFTA portion — roughly half the real savings.</p>
@@ -459,7 +478,7 @@
     </details>
   </div>
 <div class="card" id="breakEvenCard">
-    <details class="fuel-details" open>
+    <details class="fuel-details">
       <summary>Break-even &amp; fuel cost / mile</summary>
       <p class="hint">Monthly fixed costs ÷ average miles = break-even $/mi. Compared to this load&apos;s all-miles keep rate. Fuel cost / mile = total fuel spend in Fuel Savings Log (price paid × gallons) ÷ this load&apos;s total miles (loaded + deadhead).</p>
       <div class="row2">
@@ -483,7 +502,7 @@
     </details>
   </div>
 <div class="card" id="detentionCard">
-    <details class="fuel-details" open>
+    <details class="fuel-details">
       <summary>Detention Tracker</summary>
       <p class="hint">Hours on site minus free time × hourly rate. Running monthly total stays in this browser only.</p>
       <div class="row2 det-times">
@@ -511,7 +530,7 @@
     </details>
   </div>
 <div class="card" id="maintCard">
-    <details class="fuel-details" open>
+    <details class="fuel-details">
       <summary>Maintenance Log</summary>
       <p class="hint">Date, mileage, item, cost. Cost per mile uses max − min mileage once you have two mileage points.</p>
       <div class="row2">
