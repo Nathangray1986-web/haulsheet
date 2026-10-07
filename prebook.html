@@ -794,33 +794,156 @@ details.more[open] > summary::after { content: " ▾"; }
 
   function parsePasteText(raw) {
     var text = String(raw || ''), L = { unreadable: [] };
+    var lines = text.split(/\r?\n/);
     function grab(re) { var m = text.match(re); return m ? m[1].trim() : ''; }
-    var places = [], re = /([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\b/g, m;
-    while ((m = re.exec(text))) { if (STNAME[m[2]]) places.push(m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2]); }
-    if (places[0]) L.origin = places[0]; else L.unreadable.push('Origin city/ST not found in paste.');
-    if (places[1]) L.destination = places[1]; else L.unreadable.push('Destination city/ST not found in paste.');
-    var rate = grab(/(?:posted\s*)?rate\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i) || grab(/\$\s*([\d,]+(?:\.\d{2})?)/);
-    if (rate) L.rate = rate.replace(/,/g, ''); else L.unreadable.push('Rate not found in paste.');
-    var miles = grab(/(?:loaded\s*)?(?:miles|distance|dist)\s*[:\s]*([\d,]+)/i); if (miles) L.loaded = miles.replace(/,/g, '');
+    var PLACE_RE = /([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})(?:\s+(\d{5}(?:-\d{4})?))?\b/;
+    var REJECT_LINE = /\b(Contact|User|Phone|Email|Fax|HQ|Authority)\b/i;
+    var ROUTE_LINE = /([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Z]{2}(?:\s+\d{5}(?:-\d{4})?)?)\s*[-–—→]+\s*([A-Za-z][A-Za-z .'\-]{1,40}?,\s*[A-Z]{2}(?:\s+\d{5}(?:-\d{4})?)?)/;
+
+    function cleanCity(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+    function formatPlace(m) {
+      if (!m || !STNAME[m[2]]) return '';
+      var city = cleanCity(m[1]).replace(/^(?:Origin|Destination|From|To|Pickup|Delivery)\s+/i, '');
+      if (!city || city.length < 2) return '';
+      return city + ', ' + m[2] + (m[3] ? ' ' + m[3] : '');
+    }
+    function placeFromFragment(frag) {
+      if (!frag || REJECT_LINE.test(frag)) return '';
+      var m = frag.match(PLACE_RE);
+      return m ? formatPlace(m) : '';
+    }
+    function labeledPlace(kind) {
+      var labelRe = kind === 'origin' ? /^\s*origin\b/i : /^\s*destin(?:ation)?\b/i;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (!labelRe.test(line)) continue;
+        if (REJECT_LINE.test(line)) continue;
+        var after = line.replace(labelRe, '').replace(/^[\s:.\-]+/, '').trim();
+        var routeM = after.match(ROUTE_LINE);
+        if (routeM) {
+          var side = kind === 'origin' ? routeM[1] : routeM[2];
+          var pRoute = placeFromFragment(side);
+          if (pRoute) return pRoute;
+        } else {
+          var pSame = placeFromFragment(after);
+          if (pSame) return pSame;
+        }
+        for (var j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+          var nxt = lines[j].trim();
+          if (!nxt) continue;
+          if (REJECT_LINE.test(nxt)) return '';
+          if (/^\s*(origin|destin|posted\s*rate|\brate\b|miles|practical|pick|deliv|company|broker|weight|equip|contact|shipper|user|phone|email)\b/i.test(nxt) && !PLACE_RE.test(nxt)) break;
+          var routeN = nxt.match(ROUTE_LINE);
+          if (routeN) {
+            var side2 = kind === 'origin' ? routeN[1] : routeN[2];
+            var pR2 = placeFromFragment(side2);
+            if (pR2) return pR2;
+            break;
+          }
+          var pNext = placeFromFragment(nxt);
+          if (pNext) return pNext;
+          break;
+        }
+      }
+      return '';
+    }
+
+    var origin = labeledPlace('origin');
+    var destination = labeledPlace('destination');
+    if (origin) L.origin = origin; else L.unreadable.push('Origin city/ST not found in paste.');
+    if (destination) L.destination = destination; else L.unreadable.push('Destination city/ST not found in paste.');
+
+    var rate = '';
+    var posted = text.match(/posted\s*rate\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
+    if (posted) rate = posted[1];
+    if (!rate) {
+      for (var ri = 0; ri < lines.length; ri++) {
+        var rl = lines[ri];
+        if (/\b(estimated\s+fuel|fuel\s+cost|per\s*mile|fueldesk|\$\/\s*mi)\b/i.test(rl)) continue;
+        if (/\bfuel\s*surcharge\b/i.test(rl)) continue;
+        var rm = rl.match(/(?:^|\b)(?:posted\s+)?rate\b\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
+        if (rm) { rate = rm[1]; break; }
+      }
+    }
+    if (rate) L.rate = String(rate).replace(/,/g, ''); else L.unreadable.push('Rate not found in paste.');
+
+    var miles = '';
+    var milesSlash = text.match(/miles?\s*\/\s*practical\s*[:\s]*([\d,]+)/i);
+    var milesM = text.match(/(?:^|\n)\s*miles?\s*[:\s]*([\d,]+)/im);
+    var practM = text.match(/(?:^|\n)\s*practical(?:\s*miles?)?\s*[:\s]*([\d,]+)/im);
+    if (milesSlash) miles = milesSlash[1];
+    else if (milesM) miles = milesM[1];
+    else if (practM) miles = practM[1];
+    else {
+      var loadedDist = text.match(/loaded\s*(?:distance|dist|miles?)\s*[:\s]*([\d,]+)/i);
+      if (loadedDist) miles = loadedDist[1];
+    }
+    if (miles) L.loaded = String(miles).replace(/,/g, '');
+
     var dh = grab(/(?:deadhead|d-?h|odh)\s*[:\s]*([\d,]+)/i); if (dh) L.deadhead = dh.replace(/,/g, '');
     var wt = grab(/weight\s*[:\s]*([\d,]+(?:\.\d+)?\s*k?\s*(?:lb|lbs)?)/i); if (wt) L.weight = wt;
     var len = grab(/length\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (len) L.length = len;
     var wid = grab(/width\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (wid) L.width = wid;
     var ht = grab(/height\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (ht) L.height = ht;
     var tarp = grab(/tarps?\s*[:\s]*([YN]|yes|no)/i); if (tarp) L.tarpReq = /^y/i.test(tarp) ? 'Yes' : (/^n/i.test(tarp) ? 'No' : tarp);
-    var fsc = grab(/fuel\s*surcharge\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i); if (fsc) L.fsc = fsc.replace(/,/g, '');
+
+    var fsc = '';
+    for (var fi = 0; fi < lines.length; fi++) {
+      var fl = lines[fi];
+      if (/\b(estimated\s+fuel|fuel\s+cost|per\s*mile|fueldesk|\$\/\s*mi)\b/i.test(fl)) continue;
+      var fm = fl.match(/fuel\s*surcharge\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
+      if (fm) { fsc = fm[1]; break; }
+    }
+    if (fsc) L.fsc = String(fsc).replace(/,/g, '');
+
     var tarpFee = grab(/tarp(?:\s*fee)?\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i); if (tarpFee && !/^y|^n/i.test(tarpFee)) L.tarpFee = tarpFee.replace(/,/g, '');
-    var broker = grab(/(?:company|broker|posting\s*company)\s*[:\s]*([A-Za-z0-9][A-Za-z0-9 &.'\-]{2,60})/i); if (broker) L.broker = broker;
+
+    var broker = '';
+    for (var bi = 0; bi < lines.length; bi++) {
+      var bl = lines[bi];
+      var bm = bl.match(/(?:posting\s*company|company|broker)\s*[:\s]*(.*)$/i);
+      if (!bm) continue;
+      var rest = cleanCity(bm[1]);
+      if (rest && !/^(phone|email|fax|contact|user|hq|authority|mc|dot)\b/i.test(rest) && /[A-Za-z]/.test(rest)) {
+        broker = rest.replace(/\s{2,}.*/, '').slice(0, 60);
+        break;
+      }
+      for (var bj = bi + 1; bj < Math.min(bi + 3, lines.length); bj++) {
+        var bn = lines[bj].trim();
+        if (!bn) continue;
+        if (/^(phone|email|fax|contact|user|hq|authority|origin|destin|rate|miles|pick|deliv|weight|equip|mc|dot)\b/i.test(bn)) break;
+        if (/^[A-Za-z0-9]/.test(bn)) broker = bn.replace(/\s{2,}.*/, '').slice(0, 60);
+        break;
+      }
+      if (broker) break;
+    }
+    if (broker) L.broker = broker;
     if (/king\s*of\s*freight/i.test(text)) L.broker = L.broker || 'King of Freight';
     if (/\bTQL\b/.test(text)) L.broker = L.broker || 'TQL';
+
     var equip = grab(/equip(?:ment)?\s*[:\s]*([A-Za-z][A-Za-z0-9 /\-]{1,40})/i); if (equip) L.equipment = equip;
     if (/ramp/i.test(text)) L.equipment = (L.equipment ? L.equipment + ', ' : '') + 'ramps';
     if (/load\s*level/i.test(text)) L.equipment = (L.equipment ? L.equipment + ', ' : '') + 'load levelers';
-    var pu = grab(/pick(?:up)?\s*[:\s]*([A-Za-z0-9\/,:\-\s]{3,40})/i); if (pu) L.pickupWindow = pu.slice(0, 40);
+
+    var pu = '';
+    var puRe = /(?:pick[\s\-]*up|\bPU\b|(?:^|[\s:])\-up)\s*[:\s]*([A-Za-z0-9\/,:\-\s]{3,40})/i;
+    var puM = text.match(puRe);
+    if (puM) {
+      pu = puM[1].trim().replace(/^(?:pick[\s\-]*up|PU|\-up)\s*[:\s]*/i, '').replace(/^\-up\s*/i, '').trim();
+    }
+    if (!pu) {
+      for (var pi = 0; pi < lines.length; pi++) {
+        var pm = lines[pi].match(/(?:pick[\s\-]*up|\bPU\b|(?:^|[\s:])\-up)\s*[:\s]*([0-9].{2,36}|[A-Za-z0-9\/,:\-\s]{3,40})/i);
+        if (pm) { pu = pm[1].trim().replace(/^\-up\s*/i, ''); break; }
+      }
+    }
+    if (pu) L.pickupWindow = pu.slice(0, 40);
+
     var del = grab(/deliv(?:ery|er)?\s*[:\s]*([A-Za-z0-9\/,:\-\s]{3,40})/i); if (del) L.deliveryWindow = del.slice(0, 40);
     var ship = grab(/shipper\s*[:\s]*([A-Za-z0-9][A-Za-z0-9 &.'\-]{2,60})/i); if (ship) L.shipper = ship;
     return L;
   }
+
   function applyParsed(L, source) {
     source = source || 'parsed';
     var map = { origin:'origin', destination:'destination', rate:'rate', loaded:'loaded', deadhead:'deadhead', weight:'weight', length:'length', width:'width', height:'height', tarpReq:'tarpReq', fsc:'fsc', tarpFee:'tarpFee', broker:'broker', equipment:'equipment', pickupWindow:'pickupWindow', deliveryWindow:'deliveryWindow', shipper:'shipper' };
