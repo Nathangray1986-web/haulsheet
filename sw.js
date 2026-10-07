@@ -1,9 +1,10 @@
 /* Haul Sheet app shell. Bump CACHE to refresh installed copies. */
-var CACHE = 'haul-sheet-shell-v21';
+var CACHE = 'haul-sheet-shell-v22';
 var SHELL = [
   './',
   './index.html',
   './computer.html',
+  './prebook.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1419" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Pre-book brief</title>
+<style>
+:root {
+  --bg: #0f1419; --card: #1a222c; --line: #2a3544; --fg: #e8eef6; --muted: #8b9aab;
+  --accent: #3d9cf0; --good: #3ecf8e; --bad: #f07178; --warn: #e6b84d; --pass: #f07178; --ok: #3ecf8e;
+  --radius: 12px; --pad: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+body { min-height: 100vh; padding: 0.75rem; padding-bottom: 3rem; max-width: 720px; margin: 0 auto; line-height: 1.45; }
+h1 { font-size: 1.35rem; margin: 0 0 0.25rem; font-weight: 700; }
+h2 { font-size: 1.05rem; margin: 0 0 0.55rem; font-weight: 650; }
+h3 { font-size: 0.95rem; margin: 0.75rem 0 0.4rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.85rem; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--pad); margin-bottom: 0.75rem; }
+.verdict { border: 2px solid var(--accent); background: linear-gradient(160deg, #1a2838 0%, var(--card) 60%); }
+.verdict .big { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin: 0.15rem 0; }
+.verdict .rate-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin: 0.65rem 0; }
+.verdict .rate-box .k { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.verdict .rate-box .v { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.1rem; }
+.pass-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.pass-list li { padding: 0.45rem 0.6rem; margin: 0.3rem 0; border-radius: 8px; font-size: 0.92rem; border-left: 3px solid var(--line); background: rgba(0,0,0,0.2); }
+.pass-list li.turn { border-left-color: var(--pass); background: rgba(240,113,120,0.1); }
+.pass-list li.warn { border-left-color: var(--warn); background: rgba(230,184,77,0.1); }
+.pass-list li.ok { border-left-color: var(--ok); background: rgba(62,207,142,0.08); }
+.pass-list li.unk { border-left-color: var(--muted); }
+.label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.hint, .note { color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0; }
+.note.neg { color: var(--bad); } .note.warn { color: var(--warn); } .note.good { color: var(--good); }
+.line { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; padding: 0.35rem 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.line:last-child { border-bottom: none; }
+.line.total { font-weight: 700; font-size: 1.05rem; padding-top: 0.55rem; margin-top: 0.2rem; border-top: 1px solid var(--line); border-bottom: none; }
+.line span { color: var(--muted); } .line strong { color: var(--fg); }
+.formula { background: rgba(61,156,240,0.08); border: 1px solid rgba(61,156,240,0.25); border-radius: 8px; padding: 0.65rem 0.75rem; font-size: 0.88rem; margin: 0.55rem 0 0; color: var(--fg); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.55rem; }
+@media (max-width: 520px) { .grid2, .grid3, .verdict .rate-row { grid-template-columns: 1fr; } }
+label { display: block; margin-bottom: 0.45rem; }
+label > span { display: block; color: var(--muted); font-size: 0.8rem; margin-bottom: 0.2rem; }
+input[type="text"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="password"], textarea, select {
+  width: 100%; background: #0d1218; border: 1px solid var(--line); color: var(--fg); border-radius: 8px; padding: 0.55rem 0.65rem; font-size: 1rem; font-variant-numeric: tabular-nums;
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+textarea { resize: vertical; min-height: 5.5rem; font-family: inherit; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; background: #243040; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 0.55rem 0.85rem; font-size: 0.92rem; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #061018; }
+.btn.danger { background: rgba(240,113,120,0.15); border-color: var(--bad); color: var(--bad); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.55rem 0; }
+.toggle-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
+.toggle-row button.on { background: var(--accent); border-color: var(--accent); color: #061018; }
+.drop { border: 2px dashed var(--line); border-radius: var(--radius); padding: 1rem; text-align: center; color: var(--muted); cursor: pointer; }
+.drop.over { border-color: var(--accent); background: rgba(61,156,240,0.08); }
+.drop img { max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 0.5rem; }
+.badge { display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.15rem 0.45rem; border-radius: 999px; vertical-align: middle; }
+.badge.unverified { background: rgba(230,184,77,0.2); color: var(--warn); }
+.badge.confirmed { background: rgba(62,207,142,0.2); color: var(--good); }
+.badge.blank { background: rgba(139,154,171,0.2); color: var(--muted); }
+.unknown-box { border: 1px solid var(--warn); background: rgba(230,184,77,0.08); border-radius: 8px; padding: 0.55rem 0.7rem; font-size: 0.88rem; margin-top: 0.55rem; }
+.unknown-box ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+.equip-chip { display: inline-block; background: #243040; border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.82rem; margin: 0.15rem 0.15rem 0.15rem 0; color: var(--muted); }
+details.more { margin-top: 0.35rem; }
+details.more > summary { cursor: pointer; color: var(--muted); font-size: 0.88rem; font-weight: 600; list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::after { content: " ▸"; }
+details.more[open] > summary::after { content: " ▾"; }
+.log-row { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.5rem 0; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+.log-row .grow { flex: 1; min-width: 0; }
+.log-row .meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.15rem; }
+.btn-del { background: transparent; border: 1px solid var(--line); color: var(--bad); border-radius: 6px; padding: 0.3rem 0.5rem; font-size: 0.8rem; cursor: pointer; }
+.field-tap.needs-confirm input { border-color: var(--warn); box-shadow: 0 0 0 1px rgba(230,184,77,0.35); }
+.confirm-btn { margin-top: 0.25rem; font-size: 0.78rem; color: var(--warn); background: transparent; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+
+<section class="card verdict" id="verdictCard" aria-live="polite">
+  <div class="label">Pre-book brief · one load</div>
+  <h1 id="verdictTitle">What you keep after the cut</h1>
+  <div class="big" id="keepBig">—</div>
+  <p class="sub" id="keepSub" style="margin-bottom:0.35rem">Paste or drop one load. Cut % starts blank until you set it.</p>
+  <div class="rate-row">
+    <div class="rate-box">
+      <div class="k">All-miles rate (keep ÷ loaded+DH)</div>
+      <div class="v" id="allMilesRate">—</div>
+    </div>
+    <div class="rate-box">
+      <div class="k">Loaded-miles rate (keep ÷ loaded)</div>
+      <div class="v" id="loadedRate">—</div>
+    </div>
+  </div>
+  <h3 style="margin-top:0.35rem">Pass list</h3>
+  <ul class="pass-list" id="passList">
+    <li class="unk">Waiting on a load — nothing to judge yet.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>One load in</h2>
+  <p class="hint">Paste the load text, or drop / pick a screenshot. OCR numbers stay unverified until you tap Confirm. No board login. No booking.</p>
+  <div class="drop" id="dropZone" tabindex="0" role="button" aria-label="Drop screenshot or click to pick">
+    <div>Drop screenshot here · or tap to pick · or paste (Ctrl/Cmd+V)</div>
+    <img id="shotPreview" alt="Screenshot preview" hidden />
+    <p class="note" id="shotNote" style="margin-bottom:0"></p>
+  </div>
+  <input type="file" id="shotFile" accept="image/*" class="sr-only" />
+  <label style="margin-top:0.65rem"><span>Or paste load text</span>
+    <textarea id="pasteText" placeholder="Origin, destination, rate, miles, weight, dims, tarp, broker…" autocomplete="off"></textarea>
+  </label>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnParsePaste">Parse paste</button>
+    <button type="button" class="btn" id="btnClearLoad">Clear load</button>
+  </div>
+  <p class="note" id="parseMsg"></p>
+
+  <h3>Lane &amp; pay</h3>
+  <div class="toggle-row">
+    <button type="button" class="btn on" id="srcLease">Lease cut</button>
+    <button type="button" class="btn" id="srcBennett">Bennett (0% cut)</button>
+  </div>
+  <div class="grid2">
+    <label class="field-tap" data-field="origin"><span>Origin <span class="badge blank" data-badge>typed</span></span>
+      <input id="origin" type="text" placeholder="City, ST" autocomplete="off" /></label>
+    <label class="field-tap" data-field="destination"><span>Destination <span class="badge blank" data-badge>typed</span></span>
+      <input id="destination" type="text" placeholder="City, ST" autocomplete="off" /></label>
+  </div>
+  <div class="grid2">
+    <label class="field-tap" data-field="pickupWindow"><span>Pickup window <span class="badge blank" data-badge>typed</span></span>
+      <input id="pickupWindow" type="text" placeholder="e.g. Oct 7 AM" autocomplete="off" /></label>
+    <label class="field-tap" data-field="deliveryWindow"><span>Delivery window <span class="badge blank" data-badge>typed</span></span>
+      <input id="deliveryWindow" type="text" placeholder="e.g. Oct 8 by 5pm" autocomplete="off" /></label>
+  </div>
+  <div class="grid2">
+    <label class="field-tap" data-field="rate"><span>Rate $ (whole pay) <span class="badge blank" data-badge>typed</span></span>
+      <input id="rate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 3000" /></label>
+    <label id="cutWrap" class="field-tap" data-field="cutPct"><span>Lease cut % <span class="badge blank" data-badge>blank</span></span>
+      <input id="cutPct" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="leave blank until set" value="" /></label>
+  </div>
+  <div class="grid2">
+    <label class="field-tap" data-field="fsc"><span>Fuel surcharge $ (comes out first) <span class="badge blank" data-badge>typed</span></span>
+      <input id="fsc" type="number" inputmode="decimal" min="0" step="0.01" placeholder="dollar amount, not $/mi" /></label>
+    <label class="field-tap" data-field="tarpFee"><span>Tarp / other $ (comes out first) <span class="badge blank" data-badge>typed</span></span>
+      <input id="tarpFee" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" /></label>
+  </div>
+  <details class="more">
+    <summary>Optional: fill FSC $ from $/mi × loaded miles</summary>
+    <div class="grid2" style="margin-top:0.45rem">
+      <label><span>FSC $/loaded mi</span><input id="fscPerMi" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 0.40" /></label>
+      <div class="btn-row" style="align-items:flex-end">
+        <button type="button" class="btn" id="btnFscFromMi">Compute FSC $ into field above</button>
+      </div>
+    </div>
+    <p class="hint">Does not invent a surcharge. Only multiplies what you typed × loaded miles.</p>
+  </details>
+  <div class="grid3">
+    <label class="field-tap" data-field="loaded"><span>Loaded miles <span class="badge blank" data-badge>typed</span></span>
+      <input id="loaded" type="number" inputmode="decimal" min="0" step="1" placeholder="" /></label>
+    <label class="field-tap" data-field="deadhead"><span>Deadhead miles <span class="badge blank" data-badge>typed</span></span>
+      <input id="deadhead" type="number" inputmode="decimal" min="0" step="1" placeholder="" /></label>
+    <label><span>Hours (drive est.)</span>
+      <input id="hours" type="number" inputmode="decimal" min="0" step="0.1" placeholder="optional" /></label>
+  </div>
+  <label><span>Start / empty city (for deadhead)</span>
+    <input id="startCity" type="text" placeholder="Where the truck is now" autocomplete="off" /></label>
+  <div class="grid2">
+    <label class="field-tap" data-field="broker"><span>Broker / source <span class="badge blank" data-badge>typed</span></span>
+      <input id="broker" type="text" placeholder="Company name" autocomplete="off" /></label>
+    <label class="field-tap" data-field="shipper"><span>Shipper <span class="badge blank" data-badge>typed</span></span>
+      <input id="shipper" type="text" placeholder="For detention history" autocomplete="off" /></label>
+  </div>
+</section>
+
+<section class="card" id="payCard">
+  <h2>1. Pay after the cut</h2>
+  <p class="hint">Rate = whole pay. Fuel surcharge and tarp come out first. Cut hits only what is left, then fuel and tarp go back in. Bennett loads = 0% cut.</p>
+  <div id="payLines">
+    <div class="line"><span>Rate (whole pay)</span><strong id="oRate">—</strong></div>
+    <div class="line"><span>− Fuel surcharge</span><strong id="oFsc">—</strong></div>
+    <div class="line"><span>− Tarp / other</span><strong id="oTarp">—</strong></div>
+    <div class="line"><span>= Linehaul for cut</span><strong id="oFeeBase">—</strong></div>
+    <div class="line"><span>− Cut <span id="oCutPctLabel"></span></span><strong id="oCut">—</strong></div>
+    <div class="line total"><span>What you keep after the cut</span><strong id="oKeep">—</strong></div>
+  </div>
+  <div class="formula" id="formulaBox">
+    Formula: (rate − FSC − tarp) × (1 − cut%/100) + FSC + tarp. Cut % blank → keep unknown. Bennett → cut 0%, keep = rate.
+  </div>
+</section>
+
+<section class="card">
+  <h2>2. Loaded miles, deadhead, hours</h2>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnRoute">Get route miles</button>
+    <button type="button" class="btn" id="btnRouteDh">Deadhead from start city</button>
+  </div>
+  <p class="note" id="routeNote">No HERE key → public highway (car) miles, labeled as car miles — not a truck route. Paste a HERE key below for truck routing.</p>
+  <div id="routeOut"></div>
+  <div class="line"><span>Loaded</span><strong id="oLoadedMi">—</strong></div>
+  <div class="line"><span>Deadhead</span><strong id="oDhMi">—</strong></div>
+  <div class="line"><span>Total miles</span><strong id="oTotalMi">—</strong></div>
+  <div class="line"><span>Hours</span><strong id="oHours">—</strong></div>
+  <details class="more">
+    <summary>HERE API key (optional, this browser only)</summary>
+    <label style="margin-top:0.45rem"><span>HERE key</span>
+      <input id="hereKey" type="password" placeholder="Paste key or leave blank" autocomplete="off" /></label>
+    <p class="hint">Stored in localStorage as load-desk-here-key (same key name as Haul Sheet). Never sent anywhere except HERE routing.</p>
+  </details>
+</section>
+
+<section class="card">
+  <h2>3. Weight, dims, tarp</h2>
+  <p class="hint">Your truck: step deck 53 ft · max ~44k lbs · 15 straps · 10 chains/binders · 8-foot drop tarps.</p>
+  <div style="margin-bottom:0.55rem">
+    <span class="equip-chip">53′ step deck</span>
+    <span class="equip-chip">~44k lbs max</span>
+    <span class="equip-chip">15 straps</span>
+    <span class="equip-chip">10 chains</span>
+    <span class="equip-chip">8′ drop tarps</span>
+  </div>
+  <div class="grid2">
+    <label class="field-tap" data-field="weight"><span>Weight (lbs) <span class="badge blank" data-badge>typed</span></span>
+      <input id="weight" type="text" placeholder="e.g. 42000" autocomplete="off" /></label>
+    <label class="field-tap" data-field="tarpReq"><span>Tarp required? <span class="badge blank" data-badge>typed</span></span>
+      <input id="tarpReq" type="text" placeholder="Yes / No / unknown" autocomplete="off" /></label>
+  </div>
+  <div class="grid3">
+    <label class="field-tap" data-field="length"><span>Length <span class="badge blank" data-badge>typed</span></span>
+      <input id="length" type="text" placeholder="e.g. 48 ft" autocomplete="off" /></label>
+    <label class="field-tap" data-field="width"><span>Width <span class="badge blank" data-badge>typed</span></span>
+      <input id="width" type="text" placeholder="e.g. 8.5 ft" autocomplete="off" /></label>
+    <label class="field-tap" data-field="height"><span>Height <span class="badge blank" data-badge>typed</span></span>
+      <input id="height" type="text" placeholder="e.g. 8 ft" autocomplete="off" /></label>
+  </div>
+  <label class="field-tap" data-field="equipment"><span>Equipment / special <span class="badge blank" data-badge>typed</span></span>
+    <input id="equipment" type="text" placeholder="step deck, ramps, load levelers…" autocomplete="off" /></label>
+  <div id="dimsOut" class="unknown-box" hidden></div>
+</section>
+
+<section class="card">
+  <h2>4. Weather on this lane</h2>
+  <p class="hint">Pickup and delivery points only — not a general forecast. Needs origin/destination. Uses weather.gov (no key).</p>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnWx">Get weather for pickup &amp; delivery</button>
+  </div>
+  <div id="weatherOut"><p class="note">Unknown until you run weather for this lane.</p></div>
+</section>
+
+<section class="card">
+  <h2>5. Fuel on this route vs what you pay</h2>
+  <p class="hint">Compares your logged pump prices (LESS-IFTA / after-IFTA) to a route estimate only if you enter a street/EIA number. Does not invent diesel prices.</p>
+  <div class="grid2">
+    <label><span>Your avg paid $/gal (from fill-up log)</span>
+      <input id="fuelPaidAvg" type="text" readonly placeholder="from log below" /></label>
+    <label><span>Route / street diesel $/gal (you type)</span>
+      <input id="fuelStreet" type="number" inputmode="decimal" min="0" step="0.001" placeholder="leave blank if unknown" /></label>
+  </div>
+  <div id="fuelCompareOut"><p class="note">Unknown street price until you enter one. Log fill-ups below so avg paid is real.</p></div>
+</section>
+
+<section class="card">
+  <h2>6. Ports, scales, construction on this route</h2>
+  <p class="hint">Only the states on this lane — not a dump of every 511 link. Not a live closure feed; open the state site yourself.</p>
+  <div id="routeHazOut"><p class="note">Unknown until origin and destination states are set.</p></div>
+</section>
+
+<section class="card">
+  <h2>7. Detention on this shipper</h2>
+  <div id="detentionOut"><p class="note">Unknown — no shipper history yet. Log detention with a shipper name below.</p></div>
+</section>
+
+<section class="card" id="unknownCard">
+  <h2>What this brief does not know</h2>
+  <div id="unknownOut" class="unknown-box">
+    <ul id="unknownList"><li>No load loaded yet.</li></ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Pass heuristics (editable)</h2>
+  <p class="hint">Suggestions only. You decide. Target keep $1.00–$1.50/mi after expenses. Deadhead prefer under 300, up to 800 if needed.</p>
+  <div class="grid2">
+    <label><span>Min all-miles keep $/mi to take</span>
+      <input id="minAllMi" type="number" inputmode="decimal" min="0" step="0.01" value="1.00" /></label>
+    <label><span>Max deadhead miles before warn</span>
+      <input id="maxDh" type="number" inputmode="decimal" min="0" step="1" value="800" /></label>
+  </div>
+  <div class="grid2">
+    <label><span>Prefer DH under (soft)</span>
+      <input id="softDh" type="number" inputmode="decimal" min="0" step="1" value="300" /></label>
+    <label><span>Max freight lbs (your deck)</span>
+      <input id="maxLbs" type="number" inputmode="decimal" min="0" step="1" value="44000" /></label>
+  </div>
+  <label><span>Brokers to flag (comma-separated)</span>
+    <input id="flagBrokers" type="text" value="King of Freight, TQL" autocomplete="off" /></label>
+</section>
+
+<section class="card">
+  <h2>Log (exportable)</h2>
+  <p class="hint">Loads, settlement match, fill-ups, detention. Export JSON so a new phone does not wipe it. Import restores.</p>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnLogSave">Save this load to log</button>
+    <button type="button" class="btn" id="btnExport">Export JSON</button>
+    <button type="button" class="btn" id="btnImport">Import JSON</button>
+    <input type="file" id="importFile" accept="application/json,.json" class="sr-only" />
+  </div>
+  <p class="note" id="logMsg"></p>
+
+  <h3>Load log</h3>
+  <div id="loadLogList"><p class="note">No loads logged.</p></div>
+
+  <h3>Fill-ups (what you actually pay)</h3>
+  <div class="grid2">
+    <label><span>Date</span><input id="fuelDate" type="date" /></label>
+    <label><span>Location</span><input id="fuelLocation" type="text" placeholder="Love's Cortez" autocomplete="off" /></label>
+  </div>
+  <div class="grid2">
+    <label><span>Gallons</span><input id="fuelGal" type="number" inputmode="decimal" min="0" step="0.01" /></label>
+    <label><span>Price paid $/gal (LESS-IFTA)</span><input id="fuelPump" type="number" inputmode="decimal" min="0" step="0.0001" /></label>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnFuelAdd">Add fill-up</button>
+  </div>
+  <div id="fuelList"><p class="note">No fill-ups logged.</p></div>
+
+  <h3>Detention history</h3>
+  <div class="grid2">
+    <label><span>Shipper</span><input id="detShipper" type="text" placeholder="Shipper name" autocomplete="off" /></label>
+    <label><span>Pay $</span><input id="detPay" type="number" inputmode="decimal" min="0" step="0.01" /></label>
+  </div>
+  <div class="grid2">
+    <label><span>Hours on site</span><input id="detHours" type="number" inputmode="decimal" min="0" step="0.1" /></label>
+    <label><span>Date</span><input id="detDate" type="date" /></label>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn primary" id="btnDetAdd">Add detention</button>
+  </div>
+  <div id="detList"><p class="note">No detention logged.</p></div>
+
+  <h3>Settlement match (optional)</h3>
+  <div class="grid2">
+    <label><span>Settlement $ received</span><input id="settleAmt" type="number" inputmode="decimal" min="0" step="0.01" /></label>
+    <label><span>Expected keep $</span><input id="settleExpect" type="number" inputmode="decimal" min="0" step="0.01" /></label>
+  </div>
+  <label><span>Note</span><input id="settleNote" type="text" placeholder="Pro # / week" autocomplete="off" /></label>
+  <div class="btn-row">
+    <button type="button" class="btn" id="btnSettleAdd">Log settlement match</button>
+  </div>
+  <div id="settleList"><p class="note">No settlements logged.</p></div>
+</section>
+
+<p class="note" style="text-align:center;margin-top:1rem">Pre-book brief · not a form · not a load board · no booking</p>
+
+<script>
+
+(function () {
+  'use strict';
+
+  var HERE_STORE = 'load-desk-here-key';
+  var CUT_STORE = 'prebookBriefCutPct';
+  var SETTINGS_STORE = 'prebookBriefSettings';
+  var LOAD_LOG_STORE = 'prebookBriefLoadLog';
+  var FUEL_STORE = 'haulSheetFuelLog';
+  var DET_STORE = 'prebookBriefDetention';
+  var SETTLE_STORE = 'prebookBriefSettlement';
+  var BENNETT_STORE = 'prebookBriefBennett';
+
+  var STNAME = {AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'};
+  var SITES_511 = {"AL":"https://www.algotraffic.com/","AK":"https://511.alaska.gov/","AZ":"https://www.az511.gov/","AR":"https://www.idrivearkansas.com/","CO":"https://www.cotrip.org/","CT":"https://ctroads.org/","DE":"https://www.deldot.gov/map/","FL":"https://fl511.com/","GA":"https://511ga.org/","HI":"https://hidot.hawaii.gov/highways/roadwork/","ID":"https://511.idaho.gov/","IL":"https://www.gettingaroundillinois.com/","IN":"https://511in.org/","IA":"https://www.511ia.org/","KS":"https://www.kandrive.gov/","KY":"https://goky.ky.gov/","LA":"https://www.511la.org/","ME":"https://newengland511.org/","MD":"https://chart.maryland.gov/","MA":"https://mass511.com/","MI":"https://mdotjboss.state.mi.us/MiDrive/map","MN":"https://511mn.org/","MS":"https://www.mdottraffic.com/","MO":"https://traveler.modot.org/","MT":"https://www.511mt.net/","NE":"https://511.nebraska.gov/","NV":"https://www.nvroads.com/","NH":"https://newengland511.org/","NJ":"https://www.511nj.org/","NM":"https://www.nmroads.com/","NY":"https://511ny.org/","NC":"https://drivenc.gov/","ND":"https://travel.dot.nd.gov/","OH":"https://ohgo.com/","OK":"https://www.oktraffic.org/","OR":"https://www.tripcheck.com/","PA":"https://www.511pa.com/","RI":"https://www.dot.ri.gov/travel/index.php","SC":"https://www.511sc.org/","SD":"https://www.sd511.org/","TN":"https://smartway.tn.gov/","TX":"https://drivetexas.org/","UT":"https://www.udottraffic.utah.gov/","VT":"https://newengland511.org/","VA":"https://511.vdot.virginia.gov/","WA":"https://wsdot.com/travel/real-time/map","WV":"https://wv511.org/","WI":"https://511wi.gov/","WY":"https://www.wyoroad.info/"};
+
+  var fieldSource = {};
+  var routeMeta = { kind: '', notice: '', minutes: 0, dhMinutes: 0 };
+  var weatherRows = null;
+  var ocrBusy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function num(v) {
+    var n = parseFloat(String(v == null ? '' : v).replace(/[$,]/g, ''));
+    return isFinite(n) ? n : 0;
+  }
+  function hasNum(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return false;
+    var n = parseFloat(s.replace(/[$,]/g, ''));
+    return isFinite(n);
+  }
+  function cents(n) { n = Number(n); if (!isFinite(n)) return 0; return Math.round(n * 100) / 100; }
+  function money(v) {
+    if (v == null || !isFinite(v)) return '—';
+    var a = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (v < 0 ? '\u2212$' : '$') + a;
+  }
+  function moneyMi(v) {
+    if (v == null || !isFinite(v)) return '—';
+    return money(v) + '/mi';
+  }
+  function intn(v) {
+    if (v == null || !isFinite(v)) return '—';
+    return Math.round(v).toLocaleString('en-US');
+  }
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function lsGet(k, fallback) {
+    try { var raw = localStorage.getItem(k); return raw == null ? fallback : raw; } catch (e) { return fallback; }
+  }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsJson(k, fallback) {
+    try {
+      var raw = localStorage.getItem(k);
+      if (!raw) return fallback;
+      var j = JSON.parse(raw);
+      return j == null ? fallback : j;
+    } catch (e) { return fallback; }
+  }
+  function lsJsonSet(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); return true; } catch (e) { return false; } }
+
+  function isBennett() { return !!($('srcBennett') && $('srcBennett').classList.contains('on')); }
+  function setBennett(on) {
+    if ($('srcLease')) $('srcLease').classList.toggle('on', !on);
+    if ($('srcBennett')) $('srcBennett').classList.toggle('on', !!on);
+    if ($('cutWrap')) $('cutWrap').style.display = on ? 'none' : '';
+    lsSet(BENNETT_STORE, on ? '1' : '0');
+    render();
+  }
+
+  /* Pay math: FSC+tarp out, cut on remainder, FSC+tarp back. Bennett 0%. Cut blank → keep unknown.
+     Sample: 3000, FSC 200, tarp 50, cut 24.7% → feeBase 2750, cut 679.25, keep 2320.75 */
+  function analyze() {
+    var rate = hasNum($('rate') && $('rate').value) ? cents(Math.max(0, num($('rate').value))) : null;
+    var fsc = hasNum($('fsc') && $('fsc').value) ? cents(Math.max(0, num($('fsc').value))) : 0;
+    var tarp = hasNum($('tarpFee') && $('tarpFee').value) ? cents(Math.max(0, num($('tarpFee').value))) : 0;
+    var bennett = isBennett();
+    var cutBlank = !bennett && !hasNum($('cutPct') && $('cutPct').value);
+    var cutPct = bennett ? 0 : (cutBlank ? null : Math.max(0, num($('cutPct').value)));
+    var loaded = hasNum($('loaded') && $('loaded').value) ? Math.max(0, num($('loaded').value)) : null;
+    var deadhead = hasNum($('deadhead') && $('deadhead').value) ? Math.max(0, num($('deadhead').value)) : null;
+    var hours = hasNum($('hours') && $('hours').value) ? Math.max(0, num($('hours').value)) : null;
+    var feeBase = null, cutAmt = null, keep = null, overRate = false;
+    if (rate != null) {
+      var pulled = cents(fsc + tarp);
+      overRate = pulled > rate + 0.001;
+      feeBase = overRate ? 0 : cents(Math.max(0, rate - pulled));
+      if (bennett) { cutAmt = 0; keep = rate; }
+      else if (cutBlank) { cutAmt = null; keep = null; }
+      else if (overRate) { cutAmt = 0; keep = rate; }
+      else {
+        cutAmt = cents((cutPct / 100) * feeBase);
+        keep = cents(feeBase - cutAmt + pulled);
+      }
+    }
+    var totalMiles = (loaded != null || deadhead != null) ? ((loaded || 0) + (deadhead || 0)) : null;
+    var allMi = (keep != null && totalMiles != null && totalMiles > 0) ? keep / totalMiles : null;
+    var loadMi = (keep != null && loaded != null && loaded > 0) ? keep / loaded : null;
+    return {
+      rate: rate, fsc: fsc, tarp: tarp, feeBase: feeBase, cutPct: cutPct, cutBlank: cutBlank,
+      cutAmt: cutAmt, keep: keep, overRate: overRate, bennett: bennett,
+      loaded: loaded, deadhead: deadhead, totalMiles: totalMiles, hours: hours,
+      allMi: allMi, loadMi: loadMi
+    };
+  }
+
+  function setBadge(field, kind) {
+    fieldSource[field] = kind;
+    var wrap = document.querySelector('.field-tap[data-field="' + field + '"]');
+    if (!wrap) return;
+    var badge = wrap.querySelector('[data-badge]');
+    if (!badge) return;
+    badge.className = 'badge ' + (kind === 'ocr' ? 'unverified' : kind === 'confirmed' ? 'confirmed' : 'blank');
+    badge.textContent = kind === 'ocr' ? 'OCR — tap to confirm' : kind === 'confirmed' ? 'confirmed' : (kind === 'parsed' ? 'from paste' : (field === 'cutPct' && !hasNum($('cutPct') && $('cutPct').value) ? 'blank' : 'typed'));
+    wrap.classList.toggle('needs-confirm', kind === 'ocr');
+    var existing = wrap.querySelector('.confirm-btn');
+    if (kind === 'ocr') {
+      if (!existing) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'confirm-btn'; b.textContent = 'Confirm this OCR number';
+        b.addEventListener('click', function (e) { e.preventDefault(); setBadge(field, 'confirmed'); render(); });
+        wrap.appendChild(b);
+      }
+    } else if (existing) existing.remove();
+  }
+  function markTyped(field) {
+    if (fieldSource[field] === 'ocr') return;
+    setBadge(field, 'typed');
+  }
+  function fillField(id, value, source) {
+    var el = $(id); if (!el) return;
+    var v = value == null ? '' : String(value);
+    if (!v && source !== 'clear') return;
+    el.value = v;
+    if (source === 'ocr' || source === 'parsed' || source === 'confirmed' || source === 'typed') setBadge(id, source);
+  }
+
+  function parseDimInches(v) {
+    if (v == null) return null;
+    var s = String(v).trim().toLowerCase().replace(/[\u2033\u201d\u201c]/g, '"').replace(/[\u2032\u2019\u2018]/g, "'");
+    if (!s) return null;
+    var m = s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft|feet|foot)\.?\s*(?:(\d+(?:\.\d+)?)\s*(?:"|in|inch|inches)?\.?)?$/);
+    if (m) return parseFloat(m[1]) * 12 + (m[2] ? parseFloat(m[2]) : 0);
+    m = s.match(/^(\d+)\.(\d{2})$/);
+    if (m && +m[2] < 12) return +m[1] * 12 + +m[2];
+    m = s.match(/^(\d+(?:\.\d+)?)\s*(?:"|in|inch|inches)\.?$/);
+    if (m) return parseFloat(m[1]);
+    m = s.match(/^(\d+(?:\.\d+)?)$/);
+    if (m) { var n = parseFloat(m[1]); return n > 30 ? n : n * 12; }
+    return null;
+  }
+  function parseWeightLbs(v) {
+    if (v == null) return null;
+    var s = String(v).trim().toLowerCase().replace(/,/g, '');
+    if (!s) return null;
+    var m = s.match(/^(\d+(?:\.\d+)?)\s*(k)?\s*(?:lb|lbs|pounds|#)?\.?$/);
+    if (!m) return null;
+    return parseFloat(m[1]) * (m[2] ? 1000 : 1);
+  }
+  function checkDims() {
+    var maxLbs = Math.max(0, num($('maxLbs') && $('maxLbs').value) || 44000);
+    var wt = parseWeightLbs($('weight') && $('weight').value);
+    var len = parseDimInches($('length') && $('length').value);
+    var wid = parseDimInches($('width') && $('width').value);
+    var ht = parseDimInches($('height') && $('height').value);
+    var equip = String($('equipment') && $('equipment').value || '').toLowerCase();
+    var tarp = String($('tarpReq') && $('tarpReq').value || '').toLowerCase();
+    var issues = [], unk = [];
+    if ($('weight') && $('weight').value.trim() && wt == null) unk.push('Weight "' + $('weight').value.trim() + '" not readable as lbs.');
+    else if (wt == null) unk.push('Weight unknown.');
+    else if (wt > maxLbs) issues.push({ level: 'turn', text: 'Freight ' + Math.round(wt).toLocaleString() + ' lbs over your ~' + maxLbs.toLocaleString() + ' lbs step-deck max.' });
+    else issues.push({ level: 'ok', text: 'Weight ' + Math.round(wt).toLocaleString() + ' lbs within ~' + maxLbs.toLocaleString() + ' lbs max (axles still need a scale).' });
+    var maxLenIn = 53 * 12;
+    if ($('length') && $('length').value.trim() && len == null) unk.push('Length not readable.');
+    else if (len == null) unk.push('Length unknown.');
+    else if (len > maxLenIn) issues.push({ level: 'turn', text: 'Length over 53′ step deck.' });
+    else issues.push({ level: 'ok', text: 'Length fits 53′ deck (parsed).' });
+    if ($('width') && $('width').value.trim() && wid == null) unk.push('Width not readable.');
+    else if (wid == null) unk.push('Width unknown.');
+    else if (wid > 102) issues.push({ level: 'warn', text: 'Width over 8′6″ — check permits / overhang.' });
+    if ($('height') && $('height').value.trim() && ht == null) unk.push('Height not readable.');
+    else if (ht == null) unk.push('Height unknown.');
+    if (/ramp|load\s*level|leveler/.test(equip)) issues.push({ level: 'turn', text: 'Needs ramps or load levelers — flagged if you cannot provide them.' });
+    if (!equip.trim()) unk.push('Equipment / special gear unknown.');
+    if (!tarp.trim()) unk.push('Tarp requirement unknown.');
+    else if (/^y|yes|tarp/.test(tarp)) issues.push({ level: 'ok', text: 'Tarp called out — you carry 8′ drop tarps.' });
+    return { issues: issues, unk: unk };
+  }
+
+  function buildPassList(s) {
+    var items = [];
+    var minAll = num($('minAllMi') && $('minAllMi').value); if (!(minAll > 0)) minAll = 1;
+    var maxDh = num($('maxDh') && $('maxDh').value); if (!(maxDh > 0)) maxDh = 800;
+    var softDh = num($('softDh') && $('softDh').value); if (!(softDh > 0)) softDh = 300;
+    var flags = String($('flagBrokers') && $('flagBrokers').value || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean);
+    var broker = String($('broker') && $('broker').value || '').toLowerCase();
+
+    if (s.rate == null) items.push({ level: 'unk', text: 'No rate yet — cannot compute keep.' });
+    else if (s.cutBlank) items.push({ level: 'turn', text: 'Cut % is blank — cannot compute what you keep. Set your lease cut or switch to Bennett.' });
+    else if (s.keep != null) items.push({ level: 'ok', text: 'Keep after cut: ' + money(s.keep) + (s.bennett ? ' (Bennett 0% cut)' : ' (cut ' + s.cutPct + '%)') + '.' });
+
+    if (s.allMi != null) {
+      if (s.allMi < minAll) items.push({ level: 'turn', text: 'All-miles keep ' + moneyMi(s.allMi) + ' is under your $' + minAll.toFixed(2) + '/mi floor.' });
+      else items.push({ level: 'ok', text: 'All-miles keep ' + moneyMi(s.allMi) + ' meets your $' + minAll.toFixed(2) + '/mi floor.' });
+    } else if (s.keep != null) items.push({ level: 'unk', text: 'All-miles rate unknown — need loaded and/or deadhead miles.' });
+
+    if (s.deadhead != null) {
+      if (s.deadhead > maxDh) items.push({ level: 'turn', text: 'Deadhead ' + intn(s.deadhead) + ' mi is over your ' + intn(maxDh) + ' mi hard max.' });
+      else if (s.deadhead > softDh) items.push({ level: 'warn', text: 'Deadhead ' + intn(s.deadhead) + ' mi is over preferred ' + intn(softDh) + ' (allowed up to ' + intn(maxDh) + ').' });
+      else items.push({ level: 'ok', text: 'Deadhead ' + intn(s.deadhead) + ' mi under preferred ' + intn(softDh) + '.' });
+    } else items.push({ level: 'unk', text: 'Deadhead unknown.' });
+
+    var dims = checkDims();
+    dims.issues.forEach(function (i) { items.push(i); });
+
+    if (broker && flags.some(function (f) { return f && broker.indexOf(f) >= 0; }))
+      items.push({ level: 'turn', text: 'Broker/source matches a name on your flag list ("' + ($('broker').value || '') + '").' });
+    else if (!broker) items.push({ level: 'unk', text: 'Broker/source unknown — cannot check flag list.' });
+
+    if (weatherRows && weatherRows.length) {
+      var severe = weatherRows.filter(function (r) {
+        if (!r || r.error) return false;
+        var t = String(r.short || '') + ' ' + String(r.detail || '');
+        return /tornado|blizzard|ice storm|hurricane|warning|severe thunderstorm/i.test(t);
+      });
+      if (severe.length) items.push({ level: 'turn', text: 'Severe weather on window: ' + severe.map(function (r) { return r.where + ' — ' + (r.short || 'alert'); }).join('; ') });
+      else items.push({ level: 'ok', text: 'Weather pulled for lane points — no severe keywords detected (still read the forecast).' });
+    } else items.push({ level: 'unk', text: 'Weather on pickup/delivery window unknown until you run it.' });
+
+    var unverified = Object.keys(fieldSource).filter(function (k) { return fieldSource[k] === 'ocr'; });
+    if (unverified.length) items.push({ level: 'warn', text: 'OCR fields still unverified: ' + unverified.join(', ') + '. Tap each to confirm.' });
+    if (!items.length) items.push({ level: 'unk', text: 'Nothing to judge yet.' });
+    return { items: items, dimsUnk: dims.unk };
+  }
+
+  function buildUnknowns(s, pass) {
+    var u = [];
+    if (s.rate == null) u.push('Rate unknown.');
+    if (s.cutBlank) u.push('Lease cut % not set (left blank on purpose until you set it).');
+    if (s.loaded == null) u.push('Loaded miles unknown.');
+    if (s.deadhead == null) u.push('Deadhead unknown.');
+    if (s.hours == null && !(routeMeta.minutes > 0)) u.push('Hours unknown.');
+    if (!String($('origin') && $('origin').value || '').trim()) u.push('Origin unknown.');
+    if (!String($('destination') && $('destination').value || '').trim()) u.push('Destination unknown.');
+    if (!String($('pickupWindow') && $('pickupWindow').value || '').trim()) u.push('Pickup window unknown.');
+    if (!String($('deliveryWindow') && $('deliveryWindow').value || '').trim()) u.push('Delivery window unknown.');
+    if (!weatherRows) u.push('Lane weather not fetched.');
+    if (!hasNum($('fuelStreet') && $('fuelStreet').value)) u.push('Street/EIA diesel on route not entered — not invented.');
+    if (!String($('shipper') && $('shipper').value || '').trim()) u.push('Shipper unknown → detention history unknown.');
+    else if (!detentionForShipper($('shipper').value).length) u.push('No detention history for this shipper.');
+    if (routeMeta.kind === 'car') u.push('Miles are car/highway miles (no HERE key) — not a truck route.');
+    if (routeMeta.kind === '') u.push('No route run yet — ports/scales proximity not computed from a path.');
+    (pass.dimsUnk || []).forEach(function (x) { u.push(x); });
+    Object.keys(fieldSource).forEach(function (k) {
+      if (fieldSource[k] === 'ocr') u.push('OCR "' + k + '" unverified until you confirm.');
+    });
+    if (!u.length) u.push('No major gaps flagged — still verify the load yourself.');
+    return u;
+  }
+
+  function render() {
+    var s = analyze();
+    var pass = buildPassList(s);
+    if (s.cutBlank && s.rate != null) {
+      $('keepBig').textContent = 'Set cut %';
+      $('keepSub').textContent = 'Rate is in, but lease cut is blank — keep is unknown until you set it (or pick Bennett).';
+    } else if (s.keep == null) {
+      $('keepBig').textContent = '—';
+      $('keepSub').textContent = 'Paste or type a rate to see what you keep.';
+    } else {
+      $('keepBig').textContent = money(s.keep);
+      $('keepSub').textContent = s.bennett ? 'Bennett load — 0% cut. Keep = whole rate.' : ('After ' + s.cutPct + '% cut on (rate − FSC − tarp), then FSC + tarp back in.');
+    }
+    $('allMilesRate').textContent = s.allMi != null ? moneyMi(s.allMi) : '—';
+    $('loadedRate').textContent = s.loadMi != null ? moneyMi(s.loadMi) : '—';
+    $('passList').innerHTML = pass.items.map(function (i) {
+      return '<li class="' + esc(i.level) + '">' + esc(i.text) + '</li>';
+    }).join('');
+
+    $('oRate').textContent = s.rate != null ? money(s.rate) : '—';
+    $('oFsc').textContent = money(s.fsc);
+    $('oTarp').textContent = money(s.tarp);
+    $('oFeeBase').textContent = s.feeBase != null ? money(s.feeBase) : '—';
+    if (s.bennett) { $('oCutPctLabel').textContent = '(Bennett 0%)'; $('oCut').textContent = money(0); }
+    else if (s.cutBlank) { $('oCutPctLabel').textContent = '(not set)'; $('oCut').textContent = '—'; }
+    else { $('oCutPctLabel').textContent = '(' + s.cutPct + '%)'; $('oCut').textContent = s.cutAmt != null ? money(s.cutAmt) : '—'; }
+    $('oKeep').textContent = s.keep != null ? money(s.keep) : '—';
+
+    if (s.bennett) $('formulaBox').textContent = 'Bennett: cut = 0%. What you keep = rate (' + (s.rate != null ? money(s.rate) : '—') + ').';
+    else if (s.cutBlank) $('formulaBox').textContent = 'Cut % is blank. Formula waiting: (rate − FSC − tarp) × (1 − cut%/100) + FSC + tarp. Set cut % to compute keep.';
+    else if (s.rate != null) $('formulaBox').textContent = 'Linehaul for cut = ' + money(s.rate) + ' − ' + money(s.fsc) + ' − ' + money(s.tarp) + ' = ' + money(s.feeBase) + '. Cut = ' + money(s.feeBase) + ' × ' + s.cutPct + '% = ' + money(s.cutAmt) + '. Keep = ' + money(s.feeBase) + ' − ' + money(s.cutAmt) + ' + ' + money(s.fsc) + ' + ' + money(s.tarp) + ' = ' + money(s.keep) + '.';
+    else $('formulaBox').textContent = 'Formula: (rate − FSC − tarp) × (1 − cut%/100) + FSC + tarp. Cut % blank → keep unknown. Bennett → cut 0%, keep = rate.';
+
+    var miLabel = routeMeta.kind === 'truck' ? 'truck-route mi' : (routeMeta.kind === 'car' ? 'car mi' : 'mi');
+    $('oLoadedMi').textContent = s.loaded != null ? (intn(s.loaded) + ' ' + miLabel) : '—';
+    $('oDhMi').textContent = s.deadhead != null ? (intn(s.deadhead) + ' ' + miLabel) : '—';
+    $('oTotalMi').textContent = s.totalMiles != null ? (intn(s.totalMiles) + ' ' + miLabel) : '—';
+    var hrsTxt = '—';
+    if (s.hours != null) hrsTxt = s.hours.toFixed(1) + ' h (typed)';
+    else if (routeMeta.minutes > 0) hrsTxt = (routeMeta.minutes / 60).toFixed(1) + ' h (from route)';
+    $('oHours').textContent = hrsTxt;
+
+    var dimsEl = $('dimsOut');
+    var dimBits = pass.items.filter(function (i) { return /weight|length|width|height|tarp|ramp|leveler|deck/i.test(i.text); });
+    if (dimBits.length || (pass.dimsUnk && pass.dimsUnk.length)) {
+      dimsEl.hidden = false;
+      dimsEl.innerHTML = '<strong>Fit check</strong><ul>' + dimBits.map(function (i) { return '<li>' + esc(i.text) + '</li>'; }).join('') + (pass.dimsUnk || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    } else dimsEl.hidden = true;
+
+    $('unknownList').innerHTML = buildUnknowns(s, pass).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
+    renderLaneHazards();
+    renderDetentionOut();
+    renderFuelCompare();
+    saveSettings();
+  }
+
+  function stateOf(place) {
+    var m = String(place || '').match(/,\s*([A-Za-z]{2})\b/);
+    if (m) return m[1].toUpperCase();
+    m = String(place || '').trim().match(/\b([A-Za-z]{2})$/);
+    if (m && STNAME[m[1].toUpperCase()]) return m[1].toUpperCase();
+    return '';
+  }
+  function renderLaneHazards() {
+    var o = stateOf($('origin') && $('origin').value);
+    var d = stateOf($('destination') && $('destination').value);
+    var el = $('routeHazOut');
+    if (!o && !d) { el.innerHTML = '<p class="note">Unknown until origin and destination states are set (City, ST).</p>'; return; }
+    var states = []; if (o) states.push(o); if (d && d !== o) states.push(d);
+    var html = '<p class="note">Construction / roadwork: open only the state 511 sites for this lane. Not a live closure feed — nothing below claims a closure.</p><ul>';
+    states.forEach(function (st) {
+      var url = SITES_511[st], name = STNAME[st] || st;
+      if (url) html += '<li><a style="color:var(--accent)" target="_blank" rel="noopener" href="' + esc(url) + '">' + esc(name) + ' 511</a></li>';
+      else html += '<li>' + esc(name) + ': no 511 link on file.</li>';
+    });
+    html += '</ul><p class="note">Ports &amp; scales: no live open/closed feed in this brief. Check your truck GPS and the state 511 maps above. Proximity openings are not invented.</p>';
+    if (routeMeta.kind === 'car') html += '<p class="note warn">Route miles are car miles — truck-restricted roads may differ. Paste a HERE key for truck routing.</p>';
+    else if (routeMeta.kind === '') html += '<p class="note">Run Get route miles to attach a path label (still no invented scale openings).</p>';
+    el.innerHTML = html;
+  }
+
+  function fuelLogRead() { var arr = lsJson(FUEL_STORE, []); return Array.isArray(arr) ? arr : []; }
+  function fuelAvgPaid() {
+    var log = fuelLogRead(), gal = 0, spend = 0;
+    log.forEach(function (r) {
+      var g = num(r.gal != null ? r.gal : r.gallons);
+      var p = num(r.pump != null ? r.pump : r.price);
+      if (g > 0 && p > 0) { gal += g; spend += g * p; }
+    });
+    return gal > 0 ? spend / gal : null;
+  }
+  function renderFuelList() {
+    var log = fuelLogRead(), el = $('fuelList'), avg = fuelAvgPaid();
+    if ($('fuelPaidAvg')) $('fuelPaidAvg').value = avg != null ? avg.toFixed(4) : '';
+    if (!log.length) { el.innerHTML = '<p class="note">No fill-ups logged.</p>'; return; }
+    el.innerHTML = log.slice(0, 40).map(function (r) {
+      var g = num(r.gal != null ? r.gal : r.gallons), p = num(r.pump != null ? r.pump : r.price);
+      return '<div class="log-row"><div class="grow"><div>' + esc(r.location || r.loc || 'Fill-up') + ' · ' + g + ' gal @ ' + money(p) + '</div><div class="meta">' + esc(r.date || r.at || '') + '</div></div><button type="button" class="btn-del" data-fuel-del="' + esc(r.id || '') + '">Delete</button></div>';
+    }).join('');
+  }
+  function renderFuelCompare() {
+    var avg = fuelAvgPaid();
+    var street = hasNum($('fuelStreet') && $('fuelStreet').value) ? num($('fuelStreet').value) : null;
+    var bits = [];
+    if (avg == null) bits.push('Your avg paid unknown — log fill-ups (LESS-IFTA price).');
+    else bits.push('Your avg paid from log: ' + money(avg) + '/gal.');
+    if (street == null) bits.push('Street/EIA on route unknown — not invented.');
+    else {
+      bits.push('Route/street number you entered: ' + money(street) + '/gal.');
+      if (avg != null) {
+        var diff = cents(avg - street);
+        if (diff < 0) bits.push('You pay about ' + money(Math.abs(diff)) + '/gal less than that street number.');
+        else if (diff > 0) bits.push('You pay about ' + money(diff) + '/gal more than that street number.');
+        else bits.push('Matches your avg paid.');
+      }
+    }
+    $('fuelCompareOut').innerHTML = '<p class="note">' + bits.map(esc).join(' ') + '</p>';
+  }
+
+  function detRead() { var arr = lsJson(DET_STORE, []); return Array.isArray(arr) ? arr : []; }
+  function detWrite(arr) { return lsJsonSet(DET_STORE, arr); }
+  function detentionForShipper(name) {
+    var key = String(name || '').trim().toLowerCase();
+    if (!key) return [];
+    return detRead().filter(function (r) { return r && String(r.shipper || '').trim().toLowerCase() === key; });
+  }
+  function renderDetentionOut() {
+    var ship = String($('shipper') && $('shipper').value || '').trim(), el = $('detentionOut');
+    if (!ship) { el.innerHTML = '<p class="note">Unknown — enter a shipper name to look up history. No history is invented.</p>'; return; }
+    var hits = detentionForShipper(ship);
+    if (!hits.length) { el.innerHTML = '<p class="note">Unknown — no detention logged yet for "' + esc(ship) + '".</p>'; return; }
+    var pays = hits.map(function (r) { return num(r.pay); }).filter(function (n) { return n > 0; });
+    var hrs = hits.map(function (r) { return num(r.hours); }).filter(function (n) { return n > 0; });
+    var avgPay = pays.length ? pays.reduce(function (a, b) { return a + b; }, 0) / pays.length : null;
+    var avgHrs = hrs.length ? hrs.reduce(function (a, b) { return a + b; }, 0) / hrs.length : null;
+    el.innerHTML = '<p class="note good">History for "' + esc(ship) + '": ' + hits.length + ' stop(s).' +
+      (avgPay != null ? ' Avg pay ' + money(avgPay) + '.' : '') + (avgHrs != null ? ' Avg on-site ' + avgHrs.toFixed(1) + ' h.' : '') +
+      '</p><ul>' + hits.slice(0, 8).map(function (r) {
+        return '<li>' + esc(r.date || '') + ' · ' + money(num(r.pay)) + ' · ' + num(r.hours) + ' h</li>';
+      }).join('') + '</ul>';
+  }
+  function renderDetList() {
+    var log = detRead(), el = $('detList');
+    if (!log.length) { el.innerHTML = '<p class="note">No detention logged.</p>'; return; }
+    el.innerHTML = log.slice(0, 40).map(function (r) {
+      return '<div class="log-row"><div class="grow"><div>' + esc(r.shipper || '(no shipper)') + ' · ' + money(num(r.pay)) + '</div><div class="meta">' + esc(r.date || '') + ' · ' + num(r.hours) + ' h</div></div><button type="button" class="btn-del" data-det-del="' + esc(r.id || '') + '">Delete</button></div>';
+    }).join('');
+  }
+
+  function loadLogRead() { var arr = lsJson(LOAD_LOG_STORE, []); return Array.isArray(arr) ? arr : []; }
+  function loadLogWrite(arr) { return lsJsonSet(LOAD_LOG_STORE, arr); }
+  function renderLoadLog() {
+    var log = loadLogRead(), el = $('loadLogList');
+    if (!log.length) { el.innerHTML = '<p class="note">No loads logged.</p>'; return; }
+    el.innerHTML = log.slice(0, 50).map(function (r) {
+      return '<div class="log-row"><div class="grow"><div>' + esc(r.origin || '?') + ' → ' + esc(r.destination || '?') + ' · keep ' + money(num(r.keep)) + '</div><div class="meta">' + esc(r.at || '') + (r.allMi != null ? ' · ' + moneyMi(r.allMi) : '') + (r.bennett ? ' · Bennett' : (r.cutPct != null ? ' · cut ' + r.cutPct + '%' : '')) + '</div></div><button type="button" class="btn-del" data-load-del="' + esc(r.id || '') + '">Delete</button></div>';
+    }).join('');
+  }
+  function settleRead() { var arr = lsJson(SETTLE_STORE, []); return Array.isArray(arr) ? arr : []; }
+  function settleWrite(arr) { return lsJsonSet(SETTLE_STORE, arr); }
+  function renderSettle() {
+    var log = settleRead(), el = $('settleList');
+    if (!log.length) { el.innerHTML = '<p class="note">No settlements logged.</p>'; return; }
+    el.innerHTML = log.slice(0, 40).map(function (r) {
+      var diff = cents(num(r.received) - num(r.expected));
+      return '<div class="log-row"><div class="grow"><div>Got ' + money(num(r.received)) + ' · expected ' + money(num(r.expected)) + ' · Δ ' + money(diff) + '</div><div class="meta">' + esc(r.note || '') + ' · ' + esc(r.at || '') + '</div></div><button type="button" class="btn-del" data-settle-del="' + esc(r.id || '') + '">Delete</button></div>';
+    }).join('');
+  }
+
+  function parsePasteText(raw) {
+    var text = String(raw || ''), L = { unreadable: [] };
+    function grab(re) { var m = text.match(re); return m ? m[1].trim() : ''; }
+    var places = [], re = /([A-Za-z][A-Za-z .'\-]{1,40}?)\s*,\s*([A-Z]{2})\b/g, m;
+    while ((m = re.exec(text))) { if (STNAME[m[2]]) places.push(m[1].replace(/\s+/g, ' ').trim() + ', ' + m[2]); }
+    if (places[0]) L.origin = places[0]; else L.unreadable.push('Origin city/ST not found in paste.');
+    if (places[1]) L.destination = places[1]; else L.unreadable.push('Destination city/ST not found in paste.');
+    var rate = grab(/(?:posted\s*)?rate\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i) || grab(/\$\s*([\d,]+(?:\.\d{2})?)/);
+    if (rate) L.rate = rate.replace(/,/g, ''); else L.unreadable.push('Rate not found in paste.');
+    var miles = grab(/(?:loaded\s*)?(?:miles|distance|dist)\s*[:\s]*([\d,]+)/i); if (miles) L.loaded = miles.replace(/,/g, '');
+    var dh = grab(/(?:deadhead|d-?h|odh)\s*[:\s]*([\d,]+)/i); if (dh) L.deadhead = dh.replace(/,/g, '');
+    var wt = grab(/weight\s*[:\s]*([\d,]+(?:\.\d+)?\s*k?\s*(?:lb|lbs)?)/i); if (wt) L.weight = wt;
+    var len = grab(/length\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (len) L.length = len;
+    var wid = grab(/width\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (wid) L.width = wid;
+    var ht = grab(/height\s*[:\s]*([\d.'\u2032\u2033ftin\s]+)/i); if (ht) L.height = ht;
+    var tarp = grab(/tarps?\s*[:\s]*([YN]|yes|no)/i); if (tarp) L.tarpReq = /^y/i.test(tarp) ? 'Yes' : (/^n/i.test(tarp) ? 'No' : tarp);
+    var fsc = grab(/fuel\s*surcharge\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i); if (fsc) L.fsc = fsc.replace(/,/g, '');
+    var tarpFee = grab(/tarp(?:\s*fee)?\s*[:\s]*\$?\s*([\d,]+(?:\.\d{2})?)/i); if (tarpFee && !/^y|^n/i.test(tarpFee)) L.tarpFee = tarpFee.replace(/,/g, '');
+    var broker = grab(/(?:company|broker|posting\s*company)\s*[:\s]*([A-Za-z0-9][A-Za-z0-9 &.'\-]{2,60})/i); if (broker) L.broker = broker;
+    if (/king\s*of\s*freight/i.test(text)) L.broker = L.broker || 'King of Freight';
+    if (/\bTQL\b/.test(text)) L.broker = L.broker || 'TQL';
+    var equip = grab(/equip(?:ment)?\s*[:\s]*([A-Za-z][A-Za-z0-9 /\-]{1,40})/i); if (equip) L.equipment = equip;
+    if (/ramp/i.test(text)) L.equipment = (L.equipment ? L.equipment + ', ' : '') + 'ramps';
+    if (/load\s*level/i.test(text)) L.equipment = (L.equipment ? L.equipment + ', ' : '') + 'load levelers';
+    var pu = grab(/pick(?:up)?\s*[:\s]*([A-Za-z0-9\/,:\-\s]{3,40})/i); if (pu) L.pickupWindow = pu.slice(0, 40);
+    var del = grab(/deliv(?:ery|er)?\s*[:\s]*([A-Za-z0-9\/,:\-\s]{3,40})/i); if (del) L.deliveryWindow = del.slice(0, 40);
+    var ship = grab(/shipper\s*[:\s]*([A-Za-z0-9][A-Za-z0-9 &.'\-]{2,60})/i); if (ship) L.shipper = ship;
+    return L;
+  }
+  function applyParsed(L, source) {
+    source = source || 'parsed';
+    var map = { origin:'origin', destination:'destination', rate:'rate', loaded:'loaded', deadhead:'deadhead', weight:'weight', length:'length', width:'width', height:'height', tarpReq:'tarpReq', fsc:'fsc', tarpFee:'tarpFee', broker:'broker', equipment:'equipment', pickupWindow:'pickupWindow', deliveryWindow:'deliveryWindow', shipper:'shipper' };
+    Object.keys(map).forEach(function (k) { if (L[k]) fillField(map[k], L[k], source); });
+    var msg = $('parseMsg'); if (!msg) return;
+    var bits = [];
+    if (L.rate) bits.push('rate ' + L.rate);
+    if (L.origin) bits.push(L.origin);
+    if (L.destination) bits.push('\u2192 ' + L.destination);
+    msg.className = 'note' + (L.unreadable && L.unreadable.length ? ' warn' : ' good');
+    msg.textContent = (bits.length ? ('Filled: ' + bits.join(' \u00b7 ')) : 'No fields found.') + (L.unreadable && L.unreadable.length ? (' \u00b7 Gaps: ' + L.unreadable.join('; ')) : '') + (source === 'ocr' ? ' \u00b7 OCR numbers need Confirm.' : '');
+    render();
+  }
+
+  var ocrLoading = null;
+  function ensureTesseract() {
+    if (window.Tesseract && window.Tesseract.createWorker) return Promise.resolve();
+    if (ocrLoading) return ocrLoading;
+    ocrLoading = new Promise(function (res, rej) {
+      var sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      sc.onload = function () { (window.Tesseract && window.Tesseract.createWorker) ? res() : rej(new Error('Reader loaded but did not start.')); };
+      sc.onerror = function () { ocrLoading = null; rej(new Error('Could not download OCR reader. Check internet.')); };
+      document.head.appendChild(sc);
+    });
+    return ocrLoading;
+  }
+  function runOcr(fileOrBlob) {
+    if (ocrBusy) return;
+    ocrBusy = true;
+    $('shotNote').textContent = 'Loading reader…';
+    ensureTesseract().then(function () {
+      $('shotNote').textContent = 'Reading screenshot (on-device)…';
+      return window.Tesseract.createWorker('eng', 1, {
+        logger: function (m) {
+          if (m && m.status === 'recognizing text') $('shotNote').textContent = 'Reading screenshot… ' + Math.round((m.progress || 0) * 100) + '%';
+        }
+      });
+    }).then(function (worker) {
+      return worker.recognize(fileOrBlob).then(function (result) { return worker.terminate().then(function () { return result; }); });
+    }).then(function (result) {
+      ocrBusy = false;
+      var text = result && result.data && result.data.text ? result.data.text : '';
+      if ($('pasteText') && text) $('pasteText').value = text;
+      applyParsed(parsePasteText(text), 'ocr');
+      $('shotNote').textContent = 'OCR done. Confirm highlighted fields. Nothing booked.';
+    }).catch(function (err) {
+      ocrBusy = false;
+      $('shotNote').textContent = String(err && err.message || err || 'OCR failed');
+    });
+  }
+
+  function nominatim(q) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (r) {
+      if (!r.ok) throw new Error('Geocoder ' + r.status);
+      return r.json();
+    }).then(function (arr) {
+      if (!arr || !arr[0]) throw new Error('No match for "' + q + '"');
+      return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon), label: arr[0].display_name };
+    });
+  }
+  function hereKeyVal() { var el = $('hereKey'); return el ? el.value.trim() : ''; }
+  function routeOsrm(a, b) {
+    var url = 'https://router.project-osrm.org/route/v1/driving/' + a.lon + ',' + a.lat + ';' + b.lon + ',' + b.lat + '?overview=false';
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('OSRM ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (!j.routes || !j.routes[0]) throw new Error('No OSRM route');
+      var rt = j.routes[0];
+      return { miles: rt.distance / 1609.344, minutes: rt.duration / 60, kind: 'car', notice: 'Public highway (car) miles from OSRM — not a truck route. Check clearances and truck bans yourself.' };
+    });
+  }
+  function routeHere(a, b, key) {
+    var url = 'https://router.hereapi.com/v8/routes?transportMode=truck&origin=' + a.lat + ',' + a.lon + '&destination=' + b.lat + ',' + b.lon + '&return=summary&apiKey=' + encodeURIComponent(key);
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('HERE ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      var s = j.routes && j.routes[0] && j.routes[0].sections && j.routes[0].sections[0] && j.routes[0].sections[0].summary;
+      if (!s) throw new Error('No HERE route');
+      return { miles: s.length / 1609.344, minutes: s.duration / 60, kind: 'truck', notice: 'HERE truck route.' };
+    });
+  }
+  function getRoute(fromQ, toQ, applyTo) {
+    $('routeNote').textContent = 'Geocoding…';
+    $('routeOut').innerHTML = '';
+    var key = hereKeyVal();
+    return nominatim(fromQ).then(function (a) {
+      return nominatim(toQ).then(function (b) {
+        $('routeNote').textContent = key ? 'Routing truck (HERE)…' : 'Routing highway (OSRM car miles)…';
+        return (key ? routeHere(a, b, key) : routeOsrm(a, b)).then(function (rt) { return { a: a, b: b, rt: rt }; });
+      });
+    }).then(function (pack) {
+      var rt = pack.rt;
+      routeMeta.kind = rt.kind; routeMeta.notice = rt.notice;
+      if (applyTo === 'loaded') {
+        fillField('loaded', String(Math.round(rt.miles)), 'typed');
+        routeMeta.minutes = rt.minutes;
+        if ($('hours') && !$('hours').value) $('hours').value = (rt.minutes / 60).toFixed(1);
+      } else if (applyTo === 'deadhead') {
+        fillField('deadhead', String(Math.round(rt.miles)), 'typed');
+        routeMeta.dhMinutes = rt.minutes;
+      }
+      $('routeNote').textContent = rt.notice;
+      $('routeOut').innerHTML = '<p class="note">' + esc(pack.a.label.split(',').slice(0, 3).join(',')) + ' → ' + esc(pack.b.label.split(',').slice(0, 3).join(',')) + ' · <strong>' + intn(rt.miles) + ' ' + (rt.kind === 'truck' ? 'truck-route' : 'car') + ' mi</strong> · ' + (rt.minutes / 60).toFixed(1) + ' h</p>';
+      render();
+    }).catch(function (err) { $('routeNote').textContent = String(err && err.message || err || 'Route failed'); });
+  }
+
+  function weatherForPlace(q) {
+    return nominatim(q).then(function (p) {
+      var url = 'https://api.weather.gov/points/' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4);
+      return fetch(url, { headers: { 'Accept': 'application/geo+json' } }).then(function (r) {
+        if (!r.ok) throw new Error('weather.gov points ' + r.status);
+        return r.json();
+      }).then(function (pts) {
+        var forecast = pts && pts.properties && pts.properties.forecast;
+        if (!forecast) throw new Error('No forecast URL');
+        return fetch(forecast, { headers: { 'Accept': 'application/geo+json' } }).then(function (r2) {
+          if (!r2.ok) throw new Error('forecast ' + r2.status);
+          return r2.json();
+        }).then(function (fc) {
+          var periods = (fc.properties && fc.properties.periods) || [];
+          var top = periods.slice(0, 2);
+          return {
+            where: q,
+            short: top.map(function (x) { return x.name + ': ' + x.shortForecast + ', ' + x.temperature + '\u00b0' + x.temperatureUnit; }).join(' · '),
+            detail: top.map(function (x) { return x.detailedForecast || ''; }).join(' ')
+          };
+        });
+      });
+    }).catch(function (err) { return { where: q, error: String(err && err.message || err) }; });
+  }
+  function runWeather() {
+    var o = String($('origin') && $('origin').value || '').trim();
+    var d = String($('destination') && $('destination').value || '').trim();
+    if (!o || !d) { $('weatherOut').innerHTML = '<p class="note warn">Need origin and destination for lane weather.</p>'; return; }
+    $('weatherOut').innerHTML = '<p class="note">Asking weather.gov for pickup &amp; delivery points…</p>';
+    Promise.all([weatherForPlace(o), weatherForPlace(d)]).then(function (rows) {
+      weatherRows = rows;
+      $('weatherOut').innerHTML = '<ul>' + rows.map(function (r) {
+        if (r.error) return '<li>' + esc(r.where) + ': failed (' + esc(r.error) + ').</li>';
+        return '<li><strong>' + esc(r.where) + '</strong> — ' + esc(r.short) + '</li>';
+      }).join('') + '</ul><p class="note">Lane points only. Not a road-condition report. Windows you typed: pickup "' + esc($('pickupWindow') && $('pickupWindow').value || 'unknown') + '", delivery "' + esc($('deliveryWindow') && $('deliveryWindow').value || 'unknown') + '".</p>';
+      render();
+    });
+  }
+
+  function saveSettings() {
+    lsJsonSet(SETTINGS_STORE, {
+      minAllMi: $('minAllMi') && $('minAllMi').value, maxDh: $('maxDh') && $('maxDh').value,
+      softDh: $('softDh') && $('softDh').value, maxLbs: $('maxLbs') && $('maxLbs').value,
+      flagBrokers: $('flagBrokers') && $('flagBrokers').value, startCity: $('startCity') && $('startCity').value,
+      fuelStreet: $('fuelStreet') && $('fuelStreet').value
+    });
+    if ($('cutPct') && hasNum($('cutPct').value)) lsSet(CUT_STORE, $('cutPct').value);
+    if ($('hereKey')) lsSet(HERE_STORE, $('hereKey').value.trim());
+  }
+  function loadSettings() {
+    var s = lsJson(SETTINGS_STORE, {}) || {};
+    if (s.minAllMi != null && $('minAllMi')) $('minAllMi').value = s.minAllMi;
+    if (s.maxDh != null && $('maxDh')) $('maxDh').value = s.maxDh;
+    if (s.softDh != null && $('softDh')) $('softDh').value = s.softDh;
+    if (s.maxLbs != null && $('maxLbs')) $('maxLbs').value = s.maxLbs;
+    if (s.flagBrokers != null && $('flagBrokers')) $('flagBrokers').value = s.flagBrokers;
+    if (s.startCity && $('startCity')) $('startCity').value = s.startCity;
+    if (s.fuelStreet != null && $('fuelStreet')) $('fuelStreet').value = s.fuelStreet;
+    var cut = lsGet(CUT_STORE, '');
+    if ($('cutPct')) $('cutPct').value = cut && hasNum(cut) ? cut : '';
+    try { if ($('hereKey')) $('hereKey').value = localStorage.getItem(HERE_STORE) || ''; } catch (e) {}
+    if (lsGet(BENNETT_STORE, '0') === '1') setBennett(true);
+  }
+
+  function exportAll() {
+    var payload = {
+      app: 'prebook-brief', exportedAt: new Date().toISOString(),
+      cutPct: lsGet(CUT_STORE, ''), settings: lsJson(SETTINGS_STORE, {}),
+      loadLog: loadLogRead(), fuelLog: fuelLogRead(), detention: detRead(), settlement: settleRead()
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'prebook-brief-log-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    $('logMsg').textContent = 'Exported JSON download started.';
+    $('logMsg').className = 'note good';
+  }
+  function importAll(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var j = JSON.parse(String(reader.result || ''));
+        if (j.cutPct != null && hasNum(j.cutPct)) { lsSet(CUT_STORE, String(j.cutPct)); if ($('cutPct')) $('cutPct').value = String(j.cutPct); }
+        if (j.settings) lsJsonSet(SETTINGS_STORE, j.settings);
+        if (Array.isArray(j.loadLog)) loadLogWrite(j.loadLog);
+        if (Array.isArray(j.fuelLog)) lsJsonSet(FUEL_STORE, j.fuelLog);
+        if (Array.isArray(j.detention)) detWrite(j.detention);
+        if (Array.isArray(j.settlement)) settleWrite(j.settlement);
+        loadSettings(); renderFuelList(); renderDetList(); renderLoadLog(); renderSettle(); render();
+        $('logMsg').textContent = 'Import OK.'; $('logMsg').className = 'note good';
+      } catch (e) { $('logMsg').textContent = 'Import failed: ' + (e && e.message || e); $('logMsg').className = 'note neg'; }
+    };
+    reader.readAsText(file);
+  }
+  function uid(prefix) { return (prefix || 'id') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function clearLoad() {
+    ['origin','destination','pickupWindow','deliveryWindow','rate','fsc','tarpFee','fscPerMi','loaded','deadhead','hours','broker','shipper','weight','tarpReq','length','width','height','equipment','pasteText'].forEach(function (id) {
+      if ($(id)) $(id).value = '';
+      if (fieldSource[id]) setBadge(id, 'typed');
+    });
+    fieldSource = {}; weatherRows = null; routeMeta = { kind: '', notice: '', minutes: 0, dhMinutes: 0 };
+    $('shotPreview').hidden = true; $('shotNote').textContent = ''; $('parseMsg').textContent = '';
+    $('weatherOut').innerHTML = '<p class="note">Unknown until you run weather for this lane.</p>';
+    $('routeOut').innerHTML = '';
+    render();
+  }
+
+  function bind() {
+    loadSettings();
+    if ($('srcLease')) $('srcLease').addEventListener('click', function () { setBennett(false); });
+    if ($('srcBennett')) $('srcBennett').addEventListener('click', function () { setBennett(true); });
+
+    ['origin','destination','pickupWindow','deliveryWindow','rate','fsc','tarpFee','loaded','deadhead','hours','broker','shipper','weight','tarpReq','length','width','height','equipment','cutPct','minAllMi','maxDh','softDh','maxLbs','flagBrokers','fuelStreet','startCity','hereKey'].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      el.addEventListener('input', function () {
+        if (['origin','destination','rate','fsc','tarpFee','loaded','deadhead','weight','tarpReq','length','width','height','equipment','broker','shipper','pickupWindow','deliveryWindow'].indexOf(id) >= 0) {
+          if (fieldSource[id] === 'ocr') setBadge(id, 'confirmed'); else markTyped(id);
+        }
+        if (id === 'cutPct' && hasNum(el.value)) lsSet(CUT_STORE, el.value);
+        if (id === 'hereKey') lsSet(HERE_STORE, el.value.trim());
+        render();
+      });
+    });
+
+    $('btnParsePaste').addEventListener('click', function () { applyParsed(parsePasteText($('pasteText').value), 'parsed'); });
+    $('btnClearLoad').addEventListener('click', clearLoad);
+    $('btnFscFromMi').addEventListener('click', function () {
+      var pm = num($('fscPerMi') && $('fscPerMi').value), mi = num($('loaded') && $('loaded').value);
+      if (!(pm > 0) || !(mi > 0)) { $('parseMsg').className = 'note warn'; $('parseMsg').textContent = 'Need FSC $/mi and loaded miles to compute FSC $. Nothing invented.'; return; }
+      fillField('fsc', String(cents(pm * mi)), 'typed'); render();
+    });
+    $('btnRoute').addEventListener('click', function () {
+      var o = String($('origin').value || '').trim(), d = String($('destination').value || '').trim();
+      if (!o || !d) { $('routeNote').textContent = 'Need origin and destination.'; return; }
+      getRoute(o, d, 'loaded');
+    });
+    $('btnRouteDh').addEventListener('click', function () {
+      var s = String($('startCity').value || '').trim(), o = String($('origin').value || '').trim();
+      if (!s || !o) { $('routeNote').textContent = 'Need start city and origin for deadhead.'; return; }
+      getRoute(s, o, 'deadhead');
+    });
+    $('btnWx').addEventListener('click', runWeather);
+
+    var drop = $('dropZone');
+    drop.addEventListener('click', function () { $('shotFile').click(); });
+    drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+    drop.addEventListener('drop', function (e) {
+      e.preventDefault(); drop.classList.remove('over');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleShot(f);
+    });
+    $('shotFile').addEventListener('change', function () {
+      var f = $('shotFile').files && $('shotFile').files[0]; if (f) handleShot(f);
+    });
+    window.addEventListener('paste', function (e) {
+      var items = e.clipboardData && e.clipboardData.items; if (!items) return;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf('image/') === 0) { e.preventDefault(); handleShot(items[i].getAsFile()); return; }
+      }
+    });
+    function handleShot(file) {
+      if (!file) return;
+      var url = URL.createObjectURL(file), img = $('shotPreview');
+      img.src = url; img.hidden = false; runOcr(file);
+    }
+
+    $('btnLogSave').addEventListener('click', function () {
+      var s = analyze();
+      var entry = {
+        id: uid('L'), at: new Date().toISOString(),
+        origin: $('origin').value, destination: $('destination').value,
+        rate: s.rate, fsc: s.fsc, tarp: s.tarp, cutPct: s.bennett ? 0 : s.cutPct, bennett: s.bennett,
+        keep: s.keep, loaded: s.loaded, deadhead: s.deadhead, allMi: s.allMi,
+        broker: $('broker').value, shipper: $('shipper').value, weight: $('weight').value, note: ''
+      };
+      var log = loadLogRead(); log.unshift(entry); loadLogWrite(log); renderLoadLog();
+      $('logMsg').textContent = 'Load saved to log.'; $('logMsg').className = 'note good';
+    });
+    $('btnExport').addEventListener('click', exportAll);
+    $('btnImport').addEventListener('click', function () { $('importFile').click(); });
+    $('importFile').addEventListener('change', function () {
+      var f = $('importFile').files && $('importFile').files[0]; if (f) importAll(f);
+    });
+    $('btnFuelAdd').addEventListener('click', function () {
+      var gal = num($('fuelGal').value), pump = num($('fuelPump').value);
+      if (!(gal > 0) || !(pump > 0)) { $('logMsg').textContent = 'Need gallons and price paid.'; $('logMsg').className = 'note warn'; return; }
+      var log = fuelLogRead();
+      log.unshift({ id: uid('F'), date: $('fuelDate').value || new Date().toISOString().slice(0, 10), location: $('fuelLocation').value, gal: gal, gallons: gal, pump: pump, price: pump, at: new Date().toISOString() });
+      lsJsonSet(FUEL_STORE, log); $('fuelGal').value = ''; $('fuelPump').value = ''; renderFuelList(); render();
+    });
+    $('btnDetAdd').addEventListener('click', function () {
+      var ship = String($('detShipper').value || '').trim();
+      if (!ship) { $('logMsg').textContent = 'Detention needs a shipper name for history lookup.'; $('logMsg').className = 'note warn'; return; }
+      var log = detRead();
+      log.unshift({ id: uid('D'), shipper: ship, pay: num($('detPay').value), hours: num($('detHours').value), date: $('detDate').value || new Date().toISOString().slice(0, 10), at: new Date().toISOString() });
+      detWrite(log); renderDetList(); render();
+    });
+    $('btnSettleAdd').addEventListener('click', function () {
+      var log = settleRead();
+      log.unshift({ id: uid('S'), received: num($('settleAmt').value), expected: num($('settleExpect').value), note: $('settleNote').value, at: new Date().toISOString() });
+      settleWrite(log); renderSettle();
+      $('logMsg').textContent = 'Settlement logged.'; $('logMsg').className = 'note good';
+    });
+
+    document.body.addEventListener('click', function (e) {
+      var t = e.target; if (!t) return;
+      if (t.getAttribute('data-fuel-del')) { var id = t.getAttribute('data-fuel-del'); lsJsonSet(FUEL_STORE, fuelLogRead().filter(function (r) { return r.id !== id; })); renderFuelList(); render(); }
+      if (t.getAttribute('data-det-del')) { var id2 = t.getAttribute('data-det-del'); detWrite(detRead().filter(function (r) { return r.id !== id2; })); renderDetList(); render(); }
+      if (t.getAttribute('data-load-del')) { var id3 = t.getAttribute('data-load-del'); loadLogWrite(loadLogRead().filter(function (r) { return r.id !== id3; })); renderLoadLog(); }
+      if (t.getAttribute('data-settle-del')) { var id4 = t.getAttribute('data-settle-del'); settleWrite(settleRead().filter(function (r) { return r.id !== id4; })); renderSettle(); }
+    });
+
+    if ($('fuelDate') && !$('fuelDate').value) $('fuelDate').value = new Date().toISOString().slice(0, 10);
+    if ($('detDate') && !$('detDate').value) $('detDate').value = new Date().toISOString().slice(0, 10);
+    ['origin','destination','rate','fsc','tarpFee','loaded','deadhead','weight','tarpReq','length','width','height','equipment','broker','shipper','pickupWindow','deliveryWindow','cutPct'].forEach(function (id) { setBadge(id, 'typed'); });
+
+    renderFuelList(); renderDetList(); renderLoadLog(); renderSettle(); render();
+
+    // Sample validation (console only): rate 3000, FSC 200, tarp 50, cut 24.7% → keep 2320.75
+    try {
+      var feeBase = cents(3000 - 200 - 50);
+      var cutAmt = cents(feeBase * 24.7 / 100);
+      var keep = cents(feeBase - cutAmt + 200 + 50);
+      if (Math.abs(keep - 2320.75) > 0.001) console.warn('Pay math sample mismatch', keep);
+      else console.log('Pay math OK: sample keep', keep);
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
+</script>
+</body>
+</html>
